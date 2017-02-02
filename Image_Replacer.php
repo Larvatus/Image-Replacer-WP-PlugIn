@@ -302,14 +302,15 @@ function find_img_copy($old_file_link) {
 	$dir = opendir(dirname($old_file_link));// где - откроем
 	$string_to_search = preg_replace( "/[-][0-9]+[x][0-9]+.[a-z]{3}/", '',basename($old_file_link)); //начинается на имя картинки без суффикса
 	$string_to_search2 = preg_replace( "/[.][a-z]{3}/", '',$string_to_search);
-	//ищем
+	//
+	echo "<br>";
 	while(($file = readdir($dir)) !== false) {
 		$mass_sa = strstr($file,$string_to_search2);
 		if($mass_sa != "") {
 			$mass_sas[] = $mass_sa;
 		}
 	}
-	closedir($dir);// где - закроем
+	closedir($dir);
 		
 	return $mass_sas;
 }
