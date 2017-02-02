@@ -301,15 +301,26 @@ function find_img_copy($old_file_link) {
 	
 	$dir = opendir(dirname($old_file_link));// где - откроем
 	$string_to_search = preg_replace( "/[-][0-9]+[x][0-9]+.[a-z]{3}/", '',basename($old_file_link)); //начинается на имя картинки без суффикса
-	$string_to_search2 = preg_replace( "/[.][a-z]{3}/", '',$string_to_search);
+	$string_to_search2 = preg_replace( "/[.][a-z]{3}/", '',$string_to_search)."-";
+	$ext = substr(basename($old_file_link), -4);
+	$genImg = substr(basename($old_file_link), -4);
+	echo '<br>ext = '.$ext;
 	//
-	echo "<br>";
+	echo '<br>string_to_search2 = '.$string_to_search2;
 	while(($file = readdir($dir)) !== false) {
 		$mass_sa = strstr($file,$string_to_search2);
 		if($mass_sa != "") {
-			$mass_sas[] = $mass_sa;
+			if (substr($mass_sa, -4) == $ext) {
+				/* if (substr($mass_sa, 0, ) == $ext) {
+					$mass_sas[] = $mass_sa;
+				} */
+					
+				$mass_sas[] = $mass_sa;
+			}
+			//$mass_sas[] = $mass_sa;
 		}
 	}
+	$mass_sas[] = basename($old_file_link);
 	closedir($dir);
 		
 	echo "<br>";	
