@@ -312,6 +312,8 @@ function find_img_copy($old_file_link) {
 	}
 	closedir($dir);
 		
+	echo "<br>";	
+		
 	return $mass_sas;
 }
 
