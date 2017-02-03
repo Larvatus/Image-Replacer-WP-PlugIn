@@ -213,7 +213,7 @@ if (isset($_POST['check_processing_table']))
 	echo '<br>You are viewing ' . $current_site->site_name;
 	//pre($current_site);
 	echo $home_dir;
-	$temp_link = 'http://lexlarvatus.com/lex/wp-content/uploads/sites/3/2015/07/001.png';
+	$temp_link = 'http://lexlarvatus.com/lex/wp-content/uploads/sites/3/2015/07/prev1.jpg';
 	$IR_upl_dir = wp_upload_dir();
 	pre($IR_upl_dir);
 	echo '<br>Link - '.$temp_link;
@@ -304,28 +304,25 @@ function find_img_copy($old_file_link) {
 	$string_to_search2 = preg_replace( "/[.][a-z]{3}/", '',$string_to_search)."-";
 	$ext = substr(basename($old_file_link), -4);
 	$genImg = substr(basename($old_file_link), -4);
-	echo '<br>ext = '.$ext;
-	//
-	echo '<br>string_to_search2 = '.$string_to_search2;
+	
 	while(($file = readdir($dir)) !== false) {
-		$mass_sa = strstr($file,$string_to_search2);
-		if($mass_sa != "") {
-			if (substr($mass_sa, -4) == $ext) {
-				/* if (substr($mass_sa, 0, ) == $ext) {
-					$mass_sas[] = $mass_sa;
-				} */
-					
-				$mass_sas[] = $mass_sa;
+		$pos = strpos($file, $string_to_search2);
+		if ($pos === false) {} else {
+			if ($pos == 0) { 
+				$mass_sa = $file; 
+				if($mass_sa != "") {
+					if (substr($mass_sa, -4) == $ext) {
+						$mass_sas[] = $mass_sa;
+					}
+				}
 			}
-			//$mass_sas[] = $mass_sa;
 		}
 	}
 	$mass_sas[] = basename($old_file_link);
+	$mass_sas_unic = array_unique($mass_sas);
 	closedir($dir);
 		
-	echo "<br>";	
-		
-	return $mass_sas;
+	return $mass_sas_unic;
 }
 
 function test_parseposts() {
