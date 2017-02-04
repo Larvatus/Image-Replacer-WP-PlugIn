@@ -201,32 +201,9 @@ if (isset($_POST['check_processing_table']))
 	$n = "http://testplugin.ru/wp-content/uploads/projects/2016/2016.02.28_kniga-pro-puteshestviya-linkonpost/Chrysanthemum.jpg";
 	$r = str_replace($home_url, $home_dir, $n);
 	echo $r; */
-	 $blog_details = get_blog_details();
-	echo '<br>Path - '.$blog_details->path;
-	echo '<br>Path 2 - '.substr($blog_details->path, 0, -1).$_SERVER['PHP_SELF']; 
-	//echo 'Blog '.$blog_details->blog_id.' is called '.$blog_details->blogname.'.';
-	//pre($blog_details); 
-	echo '<br>'.$wpdb->prefix;
-	echo '<br>Blog ID - '.get_current_blog_id();
-	 $upload_dir = wp_upload_dir();
-	$current_site = get_current_site();
-	echo '<br>You are viewing ' . $current_site->site_name;
-	//pre($current_site);
-	echo $home_dir;
-	$temp_link = 'http://lexlarvatus.com/lex/wp-content/uploads/sites/3/2015/07/prev1.jpg';
-	$IR_upl_dir = wp_upload_dir();
-	pre($IR_upl_dir);
-	echo '<br>Link - '.$temp_link;
-	echo '<br>Base - '.$IR_upl_dir['baseurl'];
-	echo '<br>Str_repl - '.str_replace($IR_upl_dir['baseurl'], $IR_upl_dir['basedir'], $temp_link);
-	$proj = '/projects';
-	$teq = IR_get_links($temp_link, $proj);
-	pre($teq); 
-	echo preg_replace( "/\/sites\/[0-9]/", '', $temp_link);
-	$finded_copy = find_img_copy($teq['oflink']);
-	echo '<br>Link to file '.$teq['oflink'];
-	echo '<br>Count: '.count($finded_copy);
-	pre($finded_copy);
+		
+	//===============================================================================
+	
 	//======================================================+++++++++++++++++++++++++++++++
 }
 function check_processing_table()
@@ -269,29 +246,14 @@ function translit($s) {
   return $s; // возвращаем результат
 }
 
-function IR_get_links($old_link, $new_folder_name) {
-	
-	$IR_upl_dir = wp_upload_dir();
-	//$IR_upl_dir->basedir;
-	$cut_IR_u = preg_replace( "/\/sites\/[0-9]/", '',  $IR_upl_dir['baseurl'] ); //cut  /sites/3 = http://lexlarvatus.com/lex/wp-content/uploads
-	$cut_IR_d = preg_replace( "/\/sites\/[0-9]/", '',  $IR_upl_dir['basedir'] ); //cut  /sites/3 = W:\home\lexlarvatus.com\www/wp-content/uploads
-	//echo '<br>cut_IR_u = '.$cut_IR_u.'<br>cut_IR_d = '.$cut_IR_d;
-	
-	// 3 формирование ссылки для манипуляций с файлом на сервере
-	$old_file_link = str_replace($cut_IR_u, $cut_IR_d, $old_link); 
-	
-	// 4 формирование ссылки для вставки файла на сервере
-	$new_file_link = $cut_IR_d.$new_folder_name.'/'.basename($old_link);
-	
-	// 5 адаптация новой ссылки для внешних кликов
-	$new_link = $cut_IR_u.$new_folder_name.'/'.basename($old_link);
+function IR_get_links($old_link, $IRL) {
 	
 	$gen_links = array (
 		"name" => basename($old_link),
 		"owlink" => $old_link,
-		"oflink" => $old_file_link,
-		"nflink" => $new_file_link,
-		"nwlink" => $new_link,
+		"oflink" => str_replace($IRL['up_url'], $IRL['up_dir'], $old_link),
+		"nflink" => $IRL['proj_folder_dir'].'/'.basename($old_link),
+		"nwlink" => $IRL['proj_folder_url'].'/'.basename($old_link),
 	);
 	
 	return $gen_links;
@@ -329,21 +291,34 @@ function test_parseposts() {
 	
 	global $upload_dir;
 	$upload_dir = wp_upload_dir();
-		
+	
+	//cut  /sites/3 = http://lexlarvatus.com/lex/wp-content/uploads
+	$IRL['up_url'] = preg_replace( "/\/sites\/[0-9]/", '',  $upload_dir['baseurl'] ); 
+	
+	//cut  /sites/3 = W:\home\lexlarvatus.com\www/wp-content/uploads
+	$IRL['up_dir'] = preg_replace( "/\/sites\/[0-9]/", '',  $upload_dir['basedir'] ); 
+	
+	$IRL['proj'] = '/projects';
+	
+	$IRL['proj_dir'] = $IRL['up_dir'].$IRL['proj'];
+	
 	$home_url = home_url();
 	
-	$proj = $upload_dir['basedir'].'/projects';
-	if (file_exists($proj)) {} else { mkdir($proj, 0755); }//Создание каталога проектов
-	
+	//Создание каталога /projects
+	if (file_exists($IRL['proj_dir'])) {} else { mkdir($IRL['proj_dir'], 0755); }
+	//define user folder 
 	switch (get_current_blog_id()) {
-		case 1: $projname = 'Common'; break;
-		case 2: $projname = 'Elena'; break;
-		case 3: $projname = 'Lex'; break;
+		case 1: $projname = '/Common'; break;
+		case 2: $projname = '/Elena'; break;
+		case 3: $projname = '/Lex'; break;
 	}
 	
-	$proj_dir = $proj.'/'.$projname;
-	if (file_exists($proj_dir)) {} else { mkdir($proj_dir, 0755); }//Создание персонального каталога
+	$IRL['user_proj_dir'] = $IRL['proj_dir'].$projname;
 	
+	$IRL['user_proj_url'] = $IRL['up_url'].$IRL['proj'].$projname;
+	
+	//Создание каталога /projects/*User*
+	if (file_exists($IRL['user_proj_dir'])) {} else { mkdir($IRL['user_proj_dir'], 0755); }//Создание персонального каталога
 	
 	
 	global $wpdb;
@@ -384,12 +359,17 @@ function test_parseposts() {
 				$projfolder_name = $page->post_name;
 			}
 			
-			$new_folder_name = $proj_dir."/".$year."/".$year.".".$month.".".$day."_".$projfolder_name;
-			$test_newdir = $proj_dir."/".$year;
+			$year_dir = $IRL['user_proj_dir']."/".$year;
+			//Создание каталога года
+			if (file_exists($year_dir)) {} else { mkdir($year_dir, 0755); }
 			
-			if (file_exists($test_newdir)) {} else { mkdir($test_newdir, 0755); }//Создание каталога года
-			if (file_exists($new_folder_name)) {} else { mkdir($new_folder_name, 0755);}//Создание каталога проекта
+			//$new_folder_name = $proj_folder_name
+			$IRL['proj_folder_name'] = "/".$year.".".$month.".".$day."_".$projfolder_name;
+			$IRL['proj_folder_dir'] = $year_dir.$IRL['proj_folder_name'];
+			$IRL['proj_folder_url'] = $IRL['user_proj_url']."/".$year.$IRL['proj_folder_name'];
 			
+			//Создание каталога проекта
+			if (file_exists($IRL['proj_folder_dir'])) {} else { mkdir($IRL['proj_folder_dir'], 0755);}
 			include_once('simple_html_dom.php');
 			
 			// get DOM from URL or file
@@ -399,9 +379,10 @@ function test_parseposts() {
 			
 			//Вывод статистики о статье
 			$element = $html->find('img');
-			echo '</hr><h3>'.$page->post_title.'</h3>'.'<span style="color: #999; font-size: 0.7em">Опубликовано: '.$post_date;
+			echo '</hr><a href="'.home_url().'/?p='.$post_id.'"><h3>'.$page->post_title.'</h3></a>'.'<span style="color: #999; font-size: 0.7em">Опубликовано: '.$post_date;
 			echo '<br>Изображений: '.count($element).'<br></span>'; 
 			echo '<br><div style="color: #99c; font-size: 0.7em; width:300px;">'.$html->plaintext.'</div>';
+			
 			
 			$mistake = 0;
 			$mistake_log = "";
@@ -418,7 +399,7 @@ function test_parseposts() {
 			 foreach($html->find('img') as $image) {
 				
 				$IR_old_url = $image->src;//$path_parts['basename'];
-				$gen_links = IR_get_links($image->src, $new_folder_name); //генерация старых и новых ссылок для web и сервера
+				$gen_links = IR_get_links($image->src, $IRL); //генерация старых и новых ссылок для web и сервера
 				$names[] = $gen_links; //добавление ссылок в массив
 				$image->setAttribute('src', $gen_links["nwlink"]); //замена ссылки в тексте статьи
 				unset($gen_links);
@@ -438,7 +419,7 @@ function test_parseposts() {
 							if ( $i > 0 ) {//Проверка присутствия имени картинки в массиве
 								//echo '<br>Thumb in array';
 							} else {//Добавление имени картинки в массив
-								$gen_links = IR_get_links($image->parent()->href, $new_folder_name);
+								$gen_links = IR_get_links($image->parent()->href, $IRL);
 								$names[] = $gen_links; //добавление ссылок в массив
 								$image->parent()->setAttribute('href', $gen_links["nwlink"]); //замена ссылки в тексте статьи
 								unset($gen_links);
@@ -449,12 +430,14 @@ function test_parseposts() {
 				//==========================================================
 				unset($gen_links);
 			}
+			echo '<br>Каталог: '.$IR_old_url ;
+				
 			$t = 0;
 			if ($thumb_link !== NULL) {
 				foreach($names as $tname) {
 					if ($tname['name'] == basename($thumb_link)) { $t++;}
 				}
-				$gen_links = IR_get_links($thumb_link, $new_folder_name);
+				$gen_links = IR_get_links($thumb_link, $IRL);
 				$new_thumb_wlink = $gen_links["nwlink"];//сохранение для отдельного запроса
 				if ( $t > 0 ) {//Проверка присутствия имени картинки в массиве
 				} else {
@@ -498,6 +481,7 @@ function test_parseposts() {
 									'ofl' => dirname($unic['oflink']).'/'.$cloneT,
 									'nfl' => dirname($unic['nflink']).'/'.$cloneT,
 								);
+								
 							}
 						}
 					} else {//create array from 1st element of $names array
@@ -508,6 +492,7 @@ function test_parseposts() {
 									'ofl' => dirname($unic['oflink']).'/'.$clone,
 									'nfl' => dirname($unic['nflink']).'/'.$clone,
 								);
+								
 							}
 					}
 				}
