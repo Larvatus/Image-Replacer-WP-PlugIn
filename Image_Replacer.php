@@ -61,13 +61,13 @@ function test_options_page() {
 		$sql = "CREATE TABLE " .$table_process. " (
 		  id bigint(20) NOT NULL AUTO_INCREMENT,
 		  post_id bigint(20) NOT NULL,
-		  log TEXT NULL,
 		  processed tinyint(1) default '0',
 		  processmistake tinyint(1) default '0',
 		  mistake_log TEXT NULL,
 		  UNIQUE KEY id (id)
 		);";
-		require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+		require_once(ABSPATH . 'wp-admin/includes/upgrade.php'); //log TEXT NULL,
+		  
 		dbDelta( $sql );
 		
 	} else { 
@@ -388,202 +388,208 @@ function test_parseposts() {
 			$mistake_log = "";
 			$match = 0;
 			//Извлечение ссылки на превью поста
-			$table_postmeta = $wpdb->prefix.'postmeta';
+			/* $table_postmeta = $wpdb->prefix.'postmeta';
 			$id_thumbs = $wpdb->get_results("SELECT meta_value FROM $table_postmeta WHERE post_id=$post_id AND meta_key ='_thumbnail_id' ");
 			$ID_TH = $id_thumbs[0]->meta_value;
 			$thumb_links = $wpdb->get_results("SELECT guid FROM $table_posts WHERE ID=$ID_TH");
 			$thumb_link = $thumb_links[0]->guid;
 			$thumb_name = preg_replace( "/[-][0-9]+[x][0-9]+.[a-z]{3}/", '',basename($thumb_link));
-			$thumb_name = preg_replace( "/[.][a-z]{3}/", '',$thumb_name);
-			// find all image
-			 foreach($html->find('img') as $image) {
-				
-				$IR_old_url = $image->src;//$path_parts['basename'];
-				$gen_links = IR_get_links($image->src, $IRL); //генерация старых и новых ссылок для web и сервера
-				$names[] = $gen_links; //добавление ссылок в массив
-				$image->setAttribute('src', $gen_links["nwlink"]); //замена ссылки в тексте статьи
-				unset($gen_links);
-				//=============== <a href='?'> <img></a>====
-				if ($image->parent()->tag == 'a') { 
-					$pos = strripos($image->parent()->href, home_url()); //проверка на соответствие домену
-					if ($pos === false) {
-						/* echo "<br>Img -> parent a href: - Ссылка на внешний источник."; */
-					} else {
-						$a = substr($image->parent()->href, -4);
-						if ( $a == '.jpg' || $a == '.JPG' || $a == '.png' || $a == '.PNG' || $a == '.gif' || $a == '.GIF') {
-							//echo '<br>Valid link find!';
-							$i = 0;
-							foreach($names as $name) {
-								if ($name['name'] == basename($image->parent()->href)) { $i++; /* echo '<br>В массиве уже есть '.basename($image->parent()->href); */}
-							}
-							if ( $i > 0 ) {//Проверка присутствия имени картинки в массиве
-								//echo '<br>Thumb in array';
-							} else {//Добавление имени картинки в массив
+			$thumb_name = preg_replace( "/[.][a-z]{3}/", '',$thumb_name); */
+			if (count($element) == 0) {
+				echo '<br><div style="color: #944; font-size: 1.7em;">Статья пропущена!</div>';
+			} else {
+				// find all image
+				foreach($html->find('img') as $image) {
+					
+					$IR_old_url = $image->src;//$path_parts['basename'];
+					$gen_links = IR_get_links($image->src, $IRL); //генерация старых и новых ссылок для web и сервера
+					$names[] = $gen_links; //добавление ссылок в массив
+					$image->setAttribute('src', $gen_links["nwlink"]); //замена ссылки в тексте статьи
+					unset($gen_links);
+					//=============== <a href='?'> <img></a>====
+					if ($image->parent()->tag == 'a') { 
+						$pos = strripos($image->parent()->href, home_url()); //проверка на соответствие домену
+						if ($pos === false) {
+							/* echo "<br>Img -> parent a href: - Ссылка на внешний источник."; */
+						} else {
+							$a = substr($image->parent()->href, -4);
+							if ( $a == '.jpg' || $a == '.JPG' || $a == '.png' || $a == '.PNG' || $a == '.gif' || $a == '.GIF') {
+								//echo '<br>Valid link find!';
+								$i = 0;
+								foreach($names as $name) {
+									if ($name['name'] == basename($image->parent()->href)) { $i++; /* echo '<br>В массиве уже есть '.basename($image->parent()->href); */}
+								}
 								$gen_links = IR_get_links($image->parent()->href, $IRL);
-								$names[] = $gen_links; //добавление ссылок в массив
+								if ( $i > 0 ) {//Проверка присутствия имени картинки в массиве
+									//echo '<br>Thumb in array';
+								} else {
+									$names[] = $gen_links; //добавление ссылок в массив
+								}
 								$image->parent()->setAttribute('href', $gen_links["nwlink"]); //замена ссылки в тексте статьи
 								unset($gen_links);
-							}
-						} else { /* echo '<br>Img -> parent a href: - Ссылка не на изображение.<br>'; */}
-					}
-				}
-				//==========================================================
-				unset($gen_links);
-			}
-			echo '<br>Каталог: '.$IR_old_url ;
-				
-			$t = 0;
-			if ($thumb_link !== NULL) {
-				foreach($names as $tname) {
-					if ($tname['name'] == basename($thumb_link)) { $t++;}
-				}
-				$gen_links = IR_get_links($thumb_link, $IRL);
-				$new_thumb_wlink = $gen_links["nwlink"];//сохранение для отдельного запроса
-				if ( $t > 0 ) {//Проверка присутствия имени картинки в массиве
-				} else {
-					$names[] = $gen_links; //добавление ссылок в массив
-				}
-			} else { 
-				$mistake = 1;
-				$mistake_log = $mistake_log.' <br>Thumbnail is EMPTY!';
-			}
-			//Existing check
-			$exist = 0;
-			
-			foreach($names as $isexist) {
-				if (file_exists($isexist['oflink']) ) { 
-					//echo ' File exist';
-					$exist++;
-				} else {
-					//echo'ZZ';
-					$mistake = 1;
-					$mistake_log = $mistake_log.' <br> Не найден файл: '.$isexist['oflink'];
-				}
-			}
-			
-			if ($exist == count($names)) {
-				//find copy
-				foreach($names as $unic) { //ищем колонов
-					
-					if (isset($name_clone_arr)) { 
-						$c = 0;
-						foreach($name_clone_arr as $clone) { //выделить из нового массива элемент
-							if ($unic['name'] == $clone['name']) {//сравнить его с выбранным в первом элемента 
-								$c++;
-							} else { 
-							}
-						} 
-						if ($c == 0) {
-							$mass_sas = find_img_copy($unic['oflink']);
-							foreach($mass_sas as $cloneT) {
-								$name_clone_arr[] = array( 
-									'name' => $cloneT,
-									'ofl' => dirname($unic['oflink']).'/'.$cloneT,
-									'nfl' => dirname($unic['nflink']).'/'.$cloneT,
-								);
-								
-							}
+							} else { /* echo '<br>Img -> parent a href: - Ссылка не на изображение.<br>'; */}
 						}
-					} else {//create array from 1st element of $names array
-						$mass_sas = find_img_copy($unic['oflink']);
-							foreach($mass_sas as $clone) {
-								$name_clone_arr[] = array( 
-									'name' => $clone,
-									'ofl' => dirname($unic['oflink']).'/'.$clone,
-									'nfl' => dirname($unic['nflink']).'/'.$clone,
-								);
-								
-							}
+					}
+					//==========================================================
+					unset($gen_links);
+				}
+				echo '<br>Каталог: '.$IR_old_url ;
+				// add post preview in array
+				/* $t = 0;
+				if ($thumb_link !== NULL) {
+					foreach($names as $tname) {
+						if ($tname['name'] == basename($thumb_link)) { $t++;}
+					}
+					$gen_links = IR_get_links($thumb_link, $IRL);
+					$new_thumb_wlink = $gen_links["nwlink"];//сохранение для отдельного запроса
+					if ( $t > 0 ) {//Проверка присутствия имени картинки в массиве
+					} else {
+						$names[] = $gen_links; //добавление ссылок в массив
+					}
+				} else { 
+					$mistake = 1;
+					$mistake_log = $mistake_log.' <br>Thumbnail is EMPTY!';
+				} */
+				//Existing check
+				$exist = 0;
+				
+				foreach($names as $isexist) {
+					if (file_exists($isexist['oflink']) ) { 
+						//echo ' File exist';
+						$exist++;
+					} else {
+						//echo'ZZ';
+						$mistake = 1;
+						$mistake_log = $mistake_log.' <br> Не найден файл: '.$isexist['oflink'];
 					}
 				}
-				echo '<div style="color: #777; font-size: 0.85em; "><table><td><b>Найдено клонов - '.count($name_clone_arr).':</b><ol>';
-				foreach($name_clone_arr as $clu) { echo '<li>'.$clu['name'].'</li>';} //вывели всех юников
-				echo '</ol></td><td><b>Перемещены из /uploads/:</b><ol>';
-				//удаляем
-				foreach($name_clone_arr as $remfile) { 
-							/* unlink($remfile['oflink']); */ 
-							
-							
-							if (copy($remfile['ofl'], $remfile['nfl'])) {
-								unlink($remfile['ofl']); // удаление оставшейся копии файла, раскомментировать 
-								echo '<li>'.str_replace($upload_dir['basedir'], "", $remfile['ofl']).'</li>'; //
-							} else { 
-								echo '<br><span style="color: #c55;">Ошибка при копировании! - '.$remfile['owl'].'</span><br>';
-								$mistake = 1;
-								$mistake_log = $mistake_log.'<br>Ошибка при копировании! - '.$remfile['owl'].'||';
-								$error_moving++;
+				
+				if ($exist == count($names)) {
+					//find copy
+					foreach($names as $unic) { //ищем колонов
+						
+						if (isset($name_clone_arr)) { 
+							$c = 0;
+							foreach($name_clone_arr as $clone) { //выделить из нового массива элемент
+								if ($unic['name'] == $clone['name']) {//сравнить его с выбранным в первом элемента 
+									$c++;
+								} else { 
+								}
+							} 
+							if ($c == 0) {
+								$mass_sas = find_img_copy($unic['oflink']);
+								foreach($mass_sas as $cloneT) {
+									$name_clone_arr[] = array( 
+										'name' => $cloneT,
+										'ofl' => dirname($unic['oflink']).'/'.$cloneT,
+										'nfl' => dirname($unic['nflink']).'/'.$cloneT,
+									);
+									
+								}
 							}
-						} // удаление оставшейся копии файла, раскомментировать 
-				echo'</ol></td></table></div>';
-				//Move
-				$error_moving = 0;
-				foreach($names as $file) {
-					echo '<img width=\'70\' src=\''.$file['nwlink'].'\' title=\''.$file['name'].'\'> ';
+						} else {//create array from 1st element of $names array
+							$mass_sas = find_img_copy($unic['oflink']);
+								foreach($mass_sas as $clone) {
+									$name_clone_arr[] = array( 
+										'name' => $clone,
+										'ofl' => dirname($unic['oflink']).'/'.$clone,
+										'nfl' => dirname($unic['nflink']).'/'.$clone,
+									);
+									
+								}
+						}
+					}
+					echo '<div style="color: #777; font-size: 0.85em; "><table><td><b>Найдено клонов - '.count($name_clone_arr).':</b><ol>';
+					foreach($name_clone_arr as $clu) { echo '<li>'.$clu['name'].'</li>';} //вывели всех юников
+					echo '</ol></td><td><b>Перемещены из /uploads/:</b><ol>';
+					//удаляем
+					foreach($name_clone_arr as $remfile) { 
+								/* unlink($remfile['oflink']); */ 
+								
+								
+								if (copy($remfile['ofl'], $remfile['nfl'])) {
+									unlink($remfile['ofl']); // удаление оставшейся копии файла, раскомментировать 
+									echo '<li>'.str_replace($upload_dir['basedir'], "", $remfile['ofl']).'</li>'; //
+								} else { 
+									echo '<br><span style="color: #c55;">Ошибка при копировании! - '.$remfile['owl'].'</span><br>';
+									$mistake = 1;
+									$mistake_log = $mistake_log.'<br>Ошибка при копировании! - '.$remfile['owl'].'||';
+									$error_moving++;
+								}
+							} // удаление оставшейся копии файла, раскомментировать 
+					echo'</ol></td></table></div>';
+					//Move
+					$error_moving = 0;
+					foreach($names as $file) {
+						echo '<img width=\'70\' src=\''.$file['nwlink'].'\' title=\''.$file['name'].'\'> ';
+					}
+					if ($error_moving == 0) {
+						//foreach($names as $remfile) { unlink($remfile['oflink']); } // удаление оставшейся копии файла, раскомментировать 
+					}
+				} else { /* echo '<br>Один из файлов не найден. Exist - '.$exist.' В names '.count($names).' элементов.'; */}
+				
+				//
+				//$json_img = json_encode($j_img);
+				echo '</br><span style="color: #c55;">'.$mistake_log.'</span>';
+				
+				//Запись отчета в  ------------postprocessing
+				$table_process = $wpdb->prefix.'postprocessing';
+				$data = array();
+				//$data['log'] = $json_img;
+				$data['processmistake'] = $mistake;
+				if ($mistake == 1) {$data['processed'] = '0';} else {$data['processed'] = '1';}
+				$data['mistake_log'] = $mistake_log;
+				$where['post_id'] = $page->ID;
+				
+				$wpdb->update($table_process, $data, $where, array( '%s', '%d', '%d' ));
+				
+				
+				// Обновляем данные в БД      WORK
+				if ($mistake == 1) {
+					echo '<br> Запись с ID = '.$page->ID.' не обновлена в Wordpress.';
+				} else {
+					// Создаем массив данных
+					$my_post = array();
+					$my_post['ID'] = $page->ID;
+					//замена содержимого статьи измененной информацией
+					$my_post['post_content'] =  $html->outertext;
+					wp_update_post( $my_post );
+					
+					
+					//Замена ссылки на линк в 
+					/* $thumb_table_name = $wpdb->prefix.'post';
+					echo '<br>ID_TH: '.$ID_TH;
+					$where_th['ID'] = $ID_TH;
+					$data_th['guid'] = $new_thumb_wlink;
+					$wpdb->update($thumb_table_name, $data_th, $where, '%s'); */
+					
+					//$wpdb->update()
+					//заменяет линк на превью поста в таблице.
+					/* $wpdb->update($table_posts,//table
+						array('guid' => $new_thumb_wlink), //data ('column' => 'value', 'column' => 'value'),
+						array('ID' => $ID_TH),
+						array( '%s' ), //format %s - string, %d - число
+						array( '%d' ) //where_format
+					); */
+					//--update _wp_attached_file
+					//update_attached_file( $ID_TH, $new_thumb_wlink );
+					
+					/* $wpdb->update('wp_postmeta',//table
+						array('meta_value' => str_replace($upload_dir['baseurl'].'/', '', $new_thumb_wlink) ), //data ('column' => 'value', 'column' => 'value'),
+						array('post_id' => $ID_TH, 'meta_key' => '_wp_attached_file'),
+						array( '%s' ), //format %s - string, %d - число
+						array( '%d' ) //where_format
+					); */
+					echo '<br>Запись с ID = '.$my_post['ID'].' обновлена в Wordpress.';
 				}
-				if ($error_moving == 0) {
-					//foreach($names as $remfile) { unlink($remfile['oflink']); } // удаление оставшейся копии файла, раскомментировать 
-				}
-			} else { /* echo '<br>Один из файлов не найден. Exist - '.$exist.' В names '.count($names).' элементов.'; */}
-			
-			//
-			$json_img = json_encode($j_img);
-			echo '</br><span style="color: #c55;">'.$mistake_log.'</span>';
-			
-			//Запись отчета в  ------------postprocessing
-			$table_process = $wpdb->prefix.'postprocessing';
-			$data = array();
-			$data['log'] = $json_img;
-			$data['processmistake'] = $mistake;
-			if ($mistake == 1) {$data['processed'] = '0';} else {$data['processed'] = '1';}
-			$data['mistake_log'] = $mistake_log;
-			$where['post_id'] = $page->ID;
-			
-			$wpdb->update($table_process, $data, $where, array( '%s', '%d', '%d' ));
-			
-			
-			// Обновляем данные в БД      WORK
-			if ($mistake == 1) {
-				echo '<br> Запись с ID = '.$page->ID.' не обновлена в Wordpress.';
-			} else {
-				// Создаем массив данных
-				$my_post = array();
-				$my_post['ID'] = $page->ID;
-				//замена содержимого статьи измененной информацией
-				$my_post['post_content'] =  $html->outertext;
-				wp_update_post( $my_post );
 				
-				
-				//Замена ссылки на линк в 
-				$thumb_table_name = $wpdb->prefix.'post';
-				echo '<br>ID_TH: '.$ID_TH;
-				$where_th['ID'] = $ID_TH;
-				$data_th['guid'] = $new_thumb_wlink;
-				$wpdb->update($thumb_table_name, $data_th, $where, '%s');
-				
-				//$wpdb->update()
-				
-				$wpdb->update($table_posts,//table
-					array('guid' => $new_thumb_wlink), //data ('column' => 'value', 'column' => 'value'),
-					array('ID' => $ID_TH),
-					array( '%s' ), //format %s - string, %d - число
-					array( '%d' ) //where_format
-				);
-				//update _wp_attached_file
-				update_attached_file( $ID_TH, $new_thumb_wlink );
-				
-				/* $wpdb->update('wp_postmeta',//table
-					array('meta_value' => str_replace($upload_dir['baseurl'].'/', '', $new_thumb_wlink) ), //data ('column' => 'value', 'column' => 'value'),
-					array('post_id' => $ID_TH, 'meta_key' => '_wp_attached_file'),
-					array( '%s' ), //format %s - string, %d - число
-					array( '%d' ) //where_format
-				); */
-				echo '<br>Запись с ID = '.$my_post['ID'].' обновлена в Wordpress.';
-			}
+				 
+				//unset($j_img);
+			
+			}// if post haven't image
 			
 			$html->clear(); // подчищаем за собой 
-			unset($html); 
-			unset($j_img);
-			
+			unset($html);
 			
 		}
 	}
@@ -608,5 +614,7 @@ register_deactivation_hook( __FILE__, 'test_uninstall');
 
 add_action( 'admin_menu', 'test_add_admin_page' );
 //add_action( 'admin_head', 'dolly_css' );
+
+//=========================================================================================
 
 ?>
