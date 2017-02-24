@@ -69,6 +69,9 @@ function test_options_page() {
 		require_once(ABSPATH . 'wp-admin/includes/upgrade.php'); //log TEXT NULL,
 		  
 		dbDelta( $sql );
+		$table_options = $wpdb->prefix.'options';
+		$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filesize' , 0 , 'no' )");
+		$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filecount' , 0 , 'no' )");
 		
 	} else { 
 		//echo '</br>Table <b>'.$table_process.'</b> exist.</br>';
@@ -201,7 +204,62 @@ if (isset($_POST['check_processing_table']))
 	$n = "http://testplugin.ru/wp-content/uploads/projects/2016/2016.02.28_kniga-pro-puteshestviya-linkonpost/Chrysanthemum.jpg";
 	$r = str_replace($home_url, $home_dir, $n);
 	echo $r; */
-		
+	$attach_id = 1639;
+	$array = wp_get_attachment_metadata( $attach_id );	
+	//pre($array);
+	
+	/* $sizes = get_intermediate_image_sizes();
+	pre( $sizes );
+	
+	$data = wp_get_attachment_metadata( $attach_id );
+
+	// устанавливаем подпись
+	$data['image_meta']['my_data'] = 'Эта строка данных, которая мне будет нужна';
+
+	// обновляем данные
+	if( wp_update_attachment_metadata( $attach_id, $data ) )
+		echo "Обновлено";
+	else
+		echo "Не обновлено"; */
+	$file = 'W:/home/lexlarvatus.com/www/wp-content/uploads/sites/3/2017/02/Koala.jpg';
+	
+	
+	$table_options = $wpdb->prefix.'options';
+	$IR_filesize = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filesize'");
+	$IR_filecount = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filecount'");
+	echo '<br>Count - '.$IR_filecount[0]->option_value.' size - '.$IR_filesize[0]->option_value;
+	$IR_filecount[0]->option_value++;
+	$IR_filesize[0]->option_value= $IR_filesize[0]->option_value + 1000;
+	
+	//$bt = filesize($file);
+	$bt = $IR_filesize[0]->option_value;
+	$Kbt = $bt/1024;
+	$Mbt = $Kbt/1024;
+	$filecount = 1;
+	echo '<br>Size:<br>'.$bt.' байт<br> '.round($Kbt, 2).' Кбайт<br>'.round($Mbt,2).' Мбайт';
+	
+	$data['option_value'] = $IR_filecount[0]->option_value;
+	$where['option_name'] = 'Image_Replacer_filecount';
+	$wpdb->update($table_options, $data, $where, array('%d'));
+	
+	$data['option_value'] = $IR_filesize[0]->option_value;
+	$where['option_name'] = 'Image_Replacer_filesize';
+	$wpdb->update($table_options, $data, $where, array('%d'));
+	
+	//$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filesize' , $bt , 'no' )");
+	//$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filecount' , $filecount , 'no' )");
+	
+	/* $metadata = wp_generate_attachment_metadata( $attach_id, $file );
+	$metadata['file'] = _wp_relative_upload_path($file);
+	 if( wp_update_attachment_metadata( $attach_id, $metadata ) )
+		echo "Обновлено";
+	else
+		echo "Не обновлено";
+	pre($metadata);
+	$uploads = wp_upload_dir();
+	pre($uploads);
+	$new_path = _wp_relative_upload_path($file );
+	pre($new_path); */
 	//===============================================================================
 	
 	//======================================================+++++++++++++++++++++++++++++++
@@ -388,13 +446,19 @@ function test_parseposts() {
 			$mistake_log = "";
 			$match = 0;
 			//Извлечение ссылки на превью поста
-			/* $table_postmeta = $wpdb->prefix.'postmeta';
+			$table_postmeta = $wpdb->prefix.'postmeta';
 			$id_thumbs = $wpdb->get_results("SELECT meta_value FROM $table_postmeta WHERE post_id=$post_id AND meta_key ='_thumbnail_id' ");
 			$ID_TH = $id_thumbs[0]->meta_value;
 			$thumb_links = $wpdb->get_results("SELECT guid FROM $table_posts WHERE ID=$ID_TH");
 			$thumb_link = $thumb_links[0]->guid;
 			$thumb_name = preg_replace( "/[-][0-9]+[x][0-9]+.[a-z]{3}/", '',basename($thumb_link));
-			$thumb_name = preg_replace( "/[.][a-z]{3}/", '',$thumb_name); */
+			$thumb_name = preg_replace( "/[.][a-z]{3}/", '',$thumb_name);
+			if (count($element) == 1) {
+				echo '<br>Element - '.$element->src;
+				if (basename($thumb_link)== basename($element->src)) {
+					echo '<br>'.basename($thumb_link).' = '.basename($element->src);
+					}
+			}
 			if (count($element) == 0) {
 				echo '<br><div style="color: #944; font-size: 1.7em;">Статья пропущена!</div>';
 			} else {
