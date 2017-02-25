@@ -159,32 +159,52 @@ if (isset($_POST['check_processing_table']))
 	$attach_id = 1639;
 	$array = wp_get_attachment_metadata( $attach_id );	
 	//pre($array);
-	
-	
 	$file = 'W:/home/lexlarvatus.com/www/wp-content/uploads/sites/3/2017/02/Koala.jpg';
-	
 	//$bt = filesize($file);
-	$bt = $IR_filesize[0]->option_value;
-	$Kbt = $bt/1024;
-	$Mbt = $Kbt/1024;
-	$filecount = 1;
-	//echo '<br>Size:<br>'.$bt.' байт<br> '.round($Kbt, 2).' Кбайт<br>'.round($Mbt,2).' Мбайт';
+	
 		
-	$table_options = $wpdb->prefix.'options';
-	//$IR_filedata = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filedata'");
 	$total = 17;
 	$count = 5;
 	$size = 11002350;
 	//IR_resetStat();
-	IR_updateStat($total,$count,$size);
-	$IR_stat_array = array('Total_filecount' => 0, 'Removed_filecount' => 0, 'Removed_filesize' => 0);
-	//echo '<br>'.json_encode($IR_stat_array);
+	//IR_updateStat($total,$count,$size);
 	
+	//$post_year = 2006;
+	//$post_name = 'Rerwe';
+	//echo IR_create_post_folder($post_year, $post_name);
+	
+	global $wpdb;
+	
+	$per_check = 15;
+	
+	$table_posts = $wpdb->prefix.'posts';
+	$table_process = $wpdb->prefix.'postprocessing';
+	$pages = $wpdb->get_results( 
+		"
+		SELECT post_title, post_content, ID, post_date, post_name
+		FROM $table_posts
+		WHERE post_status = 'publish' 
+		AND post_type = 'post' AND ID IN (SELECT post_id FROM $table_process WHERE processmistake = 0 AND processed = 0)
+		LIMIT $per_check
+		"
+	);
+	if( $pages ) {
+		foreach ( $pages as $page ) {
+			$post_date = $page->post_date;
+			$post_id = $page->ID;
+			
+			//echo '<br>Post date: '.$post_date;
+			//echo '<br>'.$page->post_name;
+			$year = 2007;
+			//$projfolder_name = IR_create_projfolder_name($page->post_date, $page->post_name, $page->post_title);
+			//IR_create_post_folder($year, $projfolder_name).'<br>';
+		}
+	}
 	
 }
-function IR_getStat() {
+function IR_getStat() { //return statistic
 	
-	//select data from table {"Total_filecount":0,"Removed_filecount":0,"Removed_filesize":0}
+	//select data from table
 	global $wpdb;
 	$table_options = $wpdb->prefix.'options';
 	$IR_filedata = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filedata'");
@@ -192,7 +212,7 @@ function IR_getStat() {
 	//convert data <-
 	$IR_stat_array = json_decode($IR_filedata[0]->option_value);
 	
-	//increase value
+	//prepare data
 	$IR_size = $IR_stat_array->Removed_filesize;
 	$IR_Kb = $IR_size/1024;
 	$IR_Kb = round($IR_Kb, 2);
@@ -316,6 +336,36 @@ function find_img_copy($old_file_link) {
 	closedir($dir);
 		
 	return $mass_sas_unic;
+}
+function IR_create_post_folder($year, $proj_name) { //return project folder dir
+	global $upload_dir;
+	$upload_dir = wp_upload_dir();
+	$year_dir = $upload_dir['basedir'].'/'.$year;
+	$proj_dir = $year_dir.'/'.$proj_name;
+	
+	//create year & project folders
+	if (file_exists($year_dir)) {} else {	mkdir($year_dir, 0755);	}
+	if (file_exists($proj_dir)) {} else {	mkdir($proj_dir, 0755);	}
+	
+	//return project folder dir
+	return $proj_dir;
+}
+
+function IR_create_projfolder_name ($post_date, $post_name, $post_title) { //return project folder name
+	
+	if (substr($post_name, 0, 1) == "%"  ) {
+		$proj_name = translit($post_title);
+	} else {
+		$proj_name = $post_name;
+	}
+	
+	$month = substr( $post_date, 5, 2 );
+	$day = substr( $post_date, 8, 2 );
+	$year = substr( $post_date, 0, 4 );
+	$proj_name = $year.".".$month.".".$day."_".$proj_name;
+	
+	//return project folder name
+	return $proj_name;
 }
 
 function test_parseposts() {
