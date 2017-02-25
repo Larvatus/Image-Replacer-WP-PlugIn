@@ -45,7 +45,7 @@ function test_options_page() {
 	echo
 	"Статьи для проверки: <input type='text' maxlength='2' size='3' name='per_check' value='".$_POST['per_check']."'/>
 	<input type='submit' name='test_base_setup_btn' value='Проверить' />
-	<input type='submit' name='check_processing_table' value='Количество необработанных' />
+	<input type='submit' name='check_processing_table' value='Статистика' />
 	<input type='submit' name='clear_processing_table' value='Обновить таблицу отчетов' />
 	<!--<input type='submit' name='fill_processing_table' value='Заполнить' />-->
 	</form>
@@ -70,8 +70,9 @@ function test_options_page() {
 		  
 		dbDelta( $sql );
 		$table_options = $wpdb->prefix.'options';
-		$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filesize' , 0 , 'no' )");
-		$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filecount' , 0 , 'no' )");
+		$IR_beginData = '{"Total filecount":0,"Removed filecount":0,"Removed filesize":0}';
+		$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filedata' , '$IR_beginData' , 'no' )");
+		
 		
 	} else { 
 		//echo '</br>Table <b>'.$table_process.'</b> exist.</br>';
@@ -153,136 +154,108 @@ if (isset($_POST['check_processing_table']))
 		
 	} else { //echo '<br>test_not_isset';
 	}
+	//=====================================================  Test code 
 	
-	/* $id_thumbs = $wpdb->get_results("SELECT meta_value FROM wp_postmeta WHERE post_id='32' AND meta_key ='_thumbnail_id' ");
-	$ID_TH = $id_thumbs[0]->meta_value;
-	$thumb_links = $wpdb->get_results("SELECT guid FROM wp_posts WHERE ID=$ID_TH"); 
-	echo $thumb_links[0]->guid;
-	//$links3 = change_link($thumb_links[0]->guid, $new_folder_name);
-	//echo $links3["nwlink"];
-	//Замена ссылки на линк в 
-	$new_thumb_wlink = 'zzzzz'; //http://testplugin.ru/wp-content/uploads/2017/01/Penguins.jpg
-	$thumb_table_name = 'wp_posts';
-	echo '<br>ID_TH: '.$ID_TH;
-	$where_th['ID'] = $ID_TH;
-	$data_th['guid'] = $new_thumb_wlink;
-	//$wpdb->update($thumb_table_name, $data_th, $where, '%s'); */
-	
-	/* $wpdb->update('wp_posts',//table
-		array('guid' => $new_thumb_wlink), //data ('column' => 'value', 'column' => 'value'),
-		array('ID' => $ID_TH),
-		array( '%s' ), //format %s - string, %d - число
-		array( '%d' ) //where_format
-	); */
-	/* $upload_dir = wp_upload_dir();
-	$home_dir = str_replace('/wp-content/uploads', '', $upload_dir['basedir']);
-	$home_url = home_url();
-	
-	$n = "http://testplugin.ru/wp-content/uploads/Project/Penguins.jpg";
-	$r = str_replace($home_url, $home_dir, $n);
-	echo $r;
-	echo '<br>Home url - '.home_url();
-	echo '<br>get_home_url - '.get_home_url();
-	echo '<br>get_bloginfo - '.get_bloginfo('url');
-	
-	
-	
-	$upload_dir = wp_upload_dir();
-	pre( $upload_dir );
-	echo '<br>Url '.$upload_dir['baseurl'];
-	echo '<br>Dir '.$upload_dir['basedir'];
-	
-	$new_folder_name = $upload_dir['baseurl'].'/Project';
-	$new_thumb_wlink = 'http://testplugin.ru/wp-content/uploads/2017/01/Penguins.jpg';
-	$gen_links = IR_get_links($new_thumb_wlink, $new_folder_name, $home_url, $home_dir);
-	pre($gen_links);
-	 echo '<br>str_replace '.str_replace('/wp-content/uploads', '', $upload_dir['basedir']);
-	$old_file_link = str_replace(home_url(), "W:/home/testplugin.ru/www", $new_thumb_wlink);
-	echo '<br>file '.$old_file_link; 
-	$upload_dir = wp_upload_dir();
-	
-	$n = "http://testplugin.ru/wp-content/uploads/projects/2016/2016.02.28_kniga-pro-puteshestviya-linkonpost/Chrysanthemum.jpg";
-	$r = str_replace($home_url, $home_dir, $n);
-	echo $r; */
 	$attach_id = 1639;
 	$array = wp_get_attachment_metadata( $attach_id );	
 	//pre($array);
 	
-	/* $sizes = get_intermediate_image_sizes();
-	pre( $sizes );
 	
-	$data = wp_get_attachment_metadata( $attach_id );
-
-	// устанавливаем подпись
-	$data['image_meta']['my_data'] = 'Эта строка данных, которая мне будет нужна';
-
-	// обновляем данные
-	if( wp_update_attachment_metadata( $attach_id, $data ) )
-		echo "Обновлено";
-	else
-		echo "Не обновлено"; */
 	$file = 'W:/home/lexlarvatus.com/www/wp-content/uploads/sites/3/2017/02/Koala.jpg';
-	
-	
-	$table_options = $wpdb->prefix.'options';
-	$IR_filesize = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filesize'");
-	$IR_filecount = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filecount'");
-	echo '<br>Count - '.$IR_filecount[0]->option_value.' size - '.$IR_filesize[0]->option_value;
-	$IR_filecount[0]->option_value++;
-	$IR_filesize[0]->option_value= $IR_filesize[0]->option_value + 1000;
 	
 	//$bt = filesize($file);
 	$bt = $IR_filesize[0]->option_value;
 	$Kbt = $bt/1024;
 	$Mbt = $Kbt/1024;
 	$filecount = 1;
-	echo '<br>Size:<br>'.$bt.' байт<br> '.round($Kbt, 2).' Кбайт<br>'.round($Mbt,2).' Мбайт';
+	//echo '<br>Size:<br>'.$bt.' байт<br> '.round($Kbt, 2).' Кбайт<br>'.round($Mbt,2).' Мбайт';
+		
+	$table_options = $wpdb->prefix.'options';
+	//$IR_filedata = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filedata'");
+	$total = 17;
+	$count = 5;
+	$size = 11002350;
+	//IR_resetStat();
+	IR_updateStat($total,$count,$size);
+	$IR_stat_array = array('Total_filecount' => 0, 'Removed_filecount' => 0, 'Removed_filesize' => 0);
+	//echo '<br>'.json_encode($IR_stat_array);
 	
-	$data['option_value'] = $IR_filecount[0]->option_value;
-	$where['option_name'] = 'Image_Replacer_filecount';
-	$wpdb->update($table_options, $data, $where, array('%d'));
 	
-	$data['option_value'] = $IR_filesize[0]->option_value;
-	$where['option_name'] = 'Image_Replacer_filesize';
-	$wpdb->update($table_options, $data, $where, array('%d'));
-	
-	//$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filesize' , $bt , 'no' )");
-	//$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filecount' , $filecount , 'no' )");
-	
-	/* $metadata = wp_generate_attachment_metadata( $attach_id, $file );
-	$metadata['file'] = _wp_relative_upload_path($file);
-	 if( wp_update_attachment_metadata( $attach_id, $metadata ) )
-		echo "Обновлено";
-	else
-		echo "Не обновлено";
-	pre($metadata);
-	$uploads = wp_upload_dir();
-	pre($uploads);
-	$new_path = _wp_relative_upload_path($file );
-	pre($new_path); */
-	//===============================================================================
-	
-	//======================================================+++++++++++++++++++++++++++++++
 }
-function check_processing_table()
-{
+function IR_getStat() {
+	
+	//select data from table {"Total_filecount":0,"Removed_filecount":0,"Removed_filesize":0}
+	global $wpdb;
+	$table_options = $wpdb->prefix.'options';
+	$IR_filedata = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filedata'");
+		
+	//convert data <-
+	$IR_stat_array = json_decode($IR_filedata[0]->option_value);
+	
+	//increase value
+	$IR_size = $IR_stat_array->Removed_filesize;
+	$IR_Kb = $IR_size/1024;
+	$IR_Kb = round($IR_Kb, 2);
+	$IR_Mb = $IR_size/1024/1024;
+	$IR_Mb = round($IR_Mb, 2);
+	$IR_stat_string = '<br>Файлов обработано: '.$IR_stat_array->Total_filecount.'<br>Файлов удалено: '.$IR_stat_array->Removed_filecount.'<br>Освобождено: '.$IR_Mb.' Мбайт';
+	
+	//return statistic
+	return $IR_stat_string;
+}
+function IR_updateStat($total_filecount, $remove_filecount, $remove_filesize) {
+	
+	//select data from table {"Total_filecount":0,"Removed_filecount":0,"Removed_filesize":0}
+	global $wpdb;
+	$table_options = $wpdb->prefix.'options';
+	$IR_filedata = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filedata'");
+		
+	//convert data <-
+	$IR_stat_array = json_decode($IR_filedata[0]->option_value);
+	
+	//increase value
+	$IR_stat_array->Total_filecount = $IR_stat_array->Total_filecount + $total_filecount;
+	$IR_stat_array->Removed_filecount = $IR_stat_array->Removed_filecount + $remove_filecount;
+	$IR_stat_array->Removed_filesize = $IR_stat_array->Removed_filesize + $remove_filesize;
+	
+	//convert data ->
+	$IR_stat = json_encode($IR_stat_array);
+	
+	//update data in table
+	$data['option_value'] = $IR_stat;
+	$where['option_name'] = 'Image_Replacer_filedata';
+	$wpdb->update($table_options, $data, $where, array('%s','%s'));
+}
+function IR_resetStat() {
+	
+	global $wpdb;
+	$table_options = $wpdb->prefix.'options';
+	
+	//reset data
+	$IR_stat = '{"Total_filecount":0,"Removed_filecount":0,"Removed_filesize":0}';
+	
+	//update data in table
+	$data['option_value'] = $IR_stat;
+	$where['option_name'] = 'Image_Replacer_filedata';
+	$wpdb->update($table_options, $data, $where, array('%s','%s'));
+}
+function check_processing_table(){
 	global $wpdb;
 	$table_process = $wpdb->prefix.'postprocessing';
 	$count_v_post = $wpdb->query("SELECT * FROM $table_process WHERE processed='0' AND processmistake='0' ");
 	//$answer = $wpdb->query("INSERT INTO $table_process(post_id) SELECT ID FROM $wpdb->posts  WHERE post_status='publish' AND post_type='post'");
 	echo '<br>Необработанных записей: '.$count_v_post;
+	echo IR_getStat();
 }
 
-function clear_processing_table()
-{
+function clear_processing_table(){
 	global $wpdb;
 	$table_process = $wpdb->prefix.'postprocessing';
 	$wpdb->query("DELETE FROM $table_process");
 	$answer = $wpdb->query("INSERT INTO $table_process(post_id) SELECT ID FROM $wpdb->posts  WHERE post_status='publish' AND post_type='post'");
 	echo '<br>Обновлено полей для записей: '.$answer;
 }
-function post_publish_email_send($post_ID)
-{
+function post_publish_email_send($post_ID){
     $to = 'larvatuslex@gmail.com';  //EMAIL получателя
     $subject = 'Новый пост создан'; //Тема письма
     $message = 'У нас новая статья на сайте. Запись имеет id='.$post_ID; //Тело письма с указанием ID записи
