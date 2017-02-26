@@ -188,20 +188,61 @@ if (isset($_POST['check_processing_table']))
 		LIMIT $per_check
 		"
 	);
+	$old_img_temp[] = '';
+	echo count($old_img_temp);
+	$old_img = array_unique($old_img);
+	pre($old_img);
 	if( $pages ) {
 		foreach ( $pages as $page ) {
 			$post_date = $page->post_date;
 			$post_id = $page->ID;
 			
 			//echo '<br>Post date: '.$post_date;
-			//echo '<br>'.$page->post_name;
+			echo '<br>'.$page->post_name;
 			$year = 2007;
 			//$projfolder_name = IR_create_projfolder_name($page->post_date, $page->post_name, $page->post_title);
 			//IR_create_post_folder($year, $projfolder_name).'<br>';
+			$oldIMGarray = IR_getIMGarray($page->post_content);
+			pre($oldIMGarray);
 		}
 	}
 	
 }
+function IR_getIMGarray($post_content) { //return array old unique links from post
+	
+	//parsing post content
+	include_once('simple_html_dom.php');
+	$html = str_get_html($post_content);
+	
+	$element = $html->find('img');
+	switch (count($element)) {
+		case 0:
+			$old_img[] = '';
+			//echo '<br><div style="color: #944; font-size: 1.7em;">Статья пропущена!</div>';
+			break;
+		default:
+			foreach($element as $image) {
+				$old_img[] = $image->src;
+				
+				if ($image->parent()->tag == 'a') { 
+					$pos = strripos($image->parent()->href, home_url()); //проверка на соответствие домену
+					if ($pos === false) {
+						/* Out link */
+					} else {
+						$a = substr($image->parent()->href, -4); // read extension like ".jpg"
+						if ( $a == '.jpg' || $a == '.JPG' || $a == '.png' || $a == '.PNG' || $a == '.gif' || $a == '.GIF') {
+							$old_img[] = $image->parent()->href;
+						} else { /* Not img link */}
+					}
+				}
+			}
+			$old_img = array_unique($old_img); //delete repeated elements
+	}
+	
+	//return array old links
+	return $old_img;
+}
+
 function IR_getStat() { //return statistic
 	
 	//select data from table
@@ -451,7 +492,7 @@ function test_parseposts() {
 			
 			//Создание каталога проекта
 			if (file_exists($IRL['proj_folder_dir'])) {} else { mkdir($IRL['proj_folder_dir'], 0755);}
-			include_once('simple_html_dom.php');
+			//include_once('simple_html_dom.php');
 			
 			// get DOM from URL or file
 			//$html = new simple_html_dom();
