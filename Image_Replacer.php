@@ -189,9 +189,24 @@ if (isset($_POST['check_processing_table']))
 		"
 	);
 	$old_img_temp[] = '';
-	echo count($old_img_temp);
-	$old_img = array_unique($old_img);
-	pre($old_img);
+	//echo $upload_dir['baseurl'];
+	pre(wp_upload_dir());
+	
+	$upload_dir = wp_upload_dir();
+	$link = "http://lexlarvatus.com/lex/wp-content/uploads/sites/3/2015/08/00112.jpg";
+	
+	$temp_preg = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $link );
+	
+	echo $temp_preg.'<br>====';
+	
+	//$answer = IR_check_exist($old_img_temp);
+	if ($answer == 1) {echo '<br> TRUE';} else { echo $answer;} 
+	
+	echo '<br>====';
+	
+	echo '<br>'.count($old_img_temp);
+	//$old_img = array_unique($old_img);
+	
 	if( $pages ) {
 		foreach ( $pages as $page ) {
 			$post_date = $page->post_date;
@@ -203,11 +218,37 @@ if (isset($_POST['check_processing_table']))
 			//$projfolder_name = IR_create_projfolder_name($page->post_date, $page->post_name, $page->post_title);
 			//IR_create_post_folder($year, $projfolder_name).'<br>';
 			$oldIMGarray = IR_getIMGarray($page->post_content);
-			pre($oldIMGarray);
+			//pre($oldIMGarray);
+			/* $result = IR_check_exist($oldIMGarray);
+			if ($result == 1) { echo '<br>==== Fine';} else { pre($result);} */
+			
 		}
 	}
 	
 }
+function IR_check_exist($array) { // return true or mistake array
+	
+	$upload_dir = wp_upload_dir();
+	$exist = 0;
+	foreach($array as $link) {
+		//get dir link
+		$old_file = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $link );
+		
+		if (file_exists($old_file) ) { 
+			$exist++;
+		} else { 
+			$missing[] = $old_file;
+		}
+	}
+	
+	// return 1 or missing files array
+	if (count($array) == $exist) { 
+		return 1; 
+	} else { 
+		return $missing;
+	}
+}
+
 function IR_getIMGarray($post_content) { //return array old unique links from post
 	
 	//parsing post content
