@@ -159,7 +159,7 @@ if (isset($_POST['check_processing_table']))
 	$attach_id = 1639;
 	$array = wp_get_attachment_metadata( $attach_id );	
 	//pre($array);
-	$file = 'W:/home/lexlarvatus.com/www/wp-content/uploads/sites/3/2017/02/Koala.jpg';
+	$file = 'W:\home\lexlarvatus.com\www/wp-content/uploads/sites/3/2017/02/Koala.jpg';
 	//$bt = filesize($file);
 	
 		
@@ -173,7 +173,17 @@ if (isset($_POST['check_processing_table']))
 	//$post_name = 'Rerwe';
 	//echo IR_create_post_folder($post_year, $post_name);
 	
+	//$upload_dir = wp_upload_dir();
+	//pre($upload_dir);
+	
+	$test = '123';
+	
+	
 	global $wpdb;
+	
+	//generate site subdir like 'site/3' for missing log
+	$site_subdir = str_replace( 'wp_', 'site/', substr($wpdb->prefix, 0, -1) );
+	
 	
 	$per_check = 15;
 	
@@ -188,62 +198,130 @@ if (isset($_POST['check_processing_table']))
 		LIMIT $per_check
 		"
 	);
-	$old_img_temp[] = '';
-	//echo $upload_dir['baseurl'];
-	pre(wp_upload_dir());
-	
-	$upload_dir = wp_upload_dir();
-	$link = "http://lexlarvatus.com/lex/wp-content/uploads/sites/3/2015/08/00112.jpg";
-	
-	$temp_preg = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $link );
-	
-	echo $temp_preg.'<br>====';
-	
-	//$answer = IR_check_exist($old_img_temp);
-	if ($answer == 1) {echo '<br> TRUE';} else { echo $answer;} 
-	
-	echo '<br>====';
-	
-	echo '<br>'.count($old_img_temp);
-	//$old_img = array_unique($old_img);
-	
+		
 	if( $pages ) {
 		foreach ( $pages as $page ) {
 			$post_date = $page->post_date;
 			$post_id = $page->ID;
+			$mistake_log = '';
 			
-			//echo '<br>Post date: '.$post_date;
+			//extract thumb
+			$thumb_link = IR_extract_thumb_link($post_id);
+						
+			//check existance of thumb
+			$thumb_arr[] = $thumb_link;
+			$exist_thumb = IR_check_exist($thumb_arr);
+			//echo '<br>Thumb - exist ';
+			//var_dump($exist_thumb);
+			unset($thumb_arr);
+			
+			//extract image from post (unique elements)
+			$oldIMGarray = IR_getIMGarray($page->post_content);
+			
+			//check existance every element
+			$exist_array = IR_check_exist($oldIMGarray);
+			//echo '<br>Array - exist ';
+			//var_dump($exist_array);
+			
+			if (gettype($exist_thumb) == integer) { //if thumb exist
+				//echo '; Thumb - '.round($exist_thumb/1024/1024, 2).' Mb';
+			} else {
+				$mistake_log = IR_updateMistakeLog($mistake_log, $exist_thumb, 1);
+			}
+			
+			if (gettype($exist_array) == integer) {
+				//echo round($exist_array/1024/1024, 2).' Mb';
+			} else {
+				$mistake_log = IR_updateMistakeLog($mistake_log, $exist_array, 0);
+			}
+			
+			
+			//preview script work
+			echo '<br><br><img width="100" src="'.$thumb_link.'">';
 			echo '<br>'.$page->post_name;
-			$year = 2007;
+			echo '<br>Img count - '.count($oldIMGarray );
+			
+			if ($mistake_log !== '') {
+				
+			}
+			if ($mistake_log !== '') { //stop cycle
+				echo '<br><span style="color: #f33; font-size: 1.2em">MISSING!</span><br>'.$mistake_log;
+				
+			} else { //continue
+				echo '<br>===> ';
+			} 
+				
+			
+			//test block
+			//$year = 2007;
 			//$projfolder_name = IR_create_projfolder_name($page->post_date, $page->post_name, $page->post_title);
 			//IR_create_post_folder($year, $projfolder_name).'<br>';
-			$oldIMGarray = IR_getIMGarray($page->post_content);
-			//pre($oldIMGarray);
-			/* $result = IR_check_exist($oldIMGarray);
-			if ($result == 1) { echo '<br>==== Fine';} else { pre($result);} */
 			
 		}
 	}
 	
 }
-function IR_check_exist($array) { // return true or mistake array
+function IR_updateMistakeLog($mistake_log, $data, $thumb) {//return string from missing shortlinks
+	
+	global $wpdb;
+	$upload_dir = wp_upload_dir();
+	//generate site subdir like 'site/3' for missing log
+	$site_subdir = str_replace( 'wp_', 'site/', substr($wpdb->prefix, 0, -1) );
+	
+	//set prefix for log
+	if ($thumb == 1) { $prefix = ' Thumb - '; } else { $prefix = ' Content - '; }
+	$mistake_log = $mistake_log.$prefix;
+	
+	if (is_array($data)) {
+	
+		foreach ($data as $link) {
+			$link = str_replace( $upload_dir['basedir'], $site_subdir, $link );	
+			$mistake_log = $mistake_log.' | '.$link;
+		}
+		
+	} else {
+		$data = str_replace( $upload_dir['basedir'], $site_subdir, $data );		
+	}
+	
+	//return string from missing shortlinks
+	return $mistake_log;
+}
+
+function IR_extract_thumb_link ($post_id) { //return thumb link
+
+	//Извлечение ссылки на превью поста
+	global $wpdb;
+	$table_postmeta = $wpdb->prefix.'postmeta';
+	$table_posts = $wpdb->prefix.'posts';
+	$id_thumbs = $wpdb->get_results("SELECT meta_value FROM $table_postmeta WHERE post_id=$post_id AND meta_key ='_thumbnail_id' ");
+	$ID_TH = $id_thumbs[0]->meta_value;
+	$thumb_links = $wpdb->get_results("SELECT guid FROM $table_posts WHERE ID=$ID_TH");
+	$thumb_link = $thumb_links[0]->guid;
+	
+	//return thumb link
+	return $thumb_link;
+}
+
+function IR_check_exist($array) { // return total filesise or mistake array
 	
 	$upload_dir = wp_upload_dir();
 	$exist = 0;
+	$total_filesize = 0;
 	foreach($array as $link) {
 		//get dir link
 		$old_file = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $link );
 		
 		if (file_exists($old_file) ) { 
 			$exist++;
+			$total_filesize = $total_filesize + filesize($old_file);
 		} else { 
 			$missing[] = $old_file;
 		}
 	}
 	
-	// return 1 or missing files array
+	// return total filesise or missing files array
 	if (count($array) == $exist) { 
-		return 1; 
+		return $total_filesize; 
 	} else { 
 		return $missing;
 	}
@@ -305,7 +383,7 @@ function IR_getStat() { //return statistic
 	//return statistic
 	return $IR_stat_string;
 }
-function IR_updateStat($total_filecount, $remove_filecount, $remove_filesize) {
+function IR_updateStat($total_filecount, $remove_filecount, $remove_filesize) { //update data in table
 	
 	//select data from table {"Total_filecount":0,"Removed_filecount":0,"Removed_filesize":0}
 	global $wpdb;
@@ -328,7 +406,7 @@ function IR_updateStat($total_filecount, $remove_filecount, $remove_filesize) {
 	$where['option_name'] = 'Image_Replacer_filedata';
 	$wpdb->update($table_options, $data, $where, array('%s','%s'));
 }
-function IR_resetStat() {
+function IR_resetStat() { //reset & update data in table
 	
 	global $wpdb;
 	$table_options = $wpdb->prefix.'options';
