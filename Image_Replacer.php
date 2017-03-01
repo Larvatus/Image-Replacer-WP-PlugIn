@@ -170,28 +170,24 @@ if (isset($_POST['check_processing_table']))
 	//IR_resetStat();
 	//IR_updateStat($total,$count,$size);
 	
-	//$post_year = 2006;
-	//$post_name = 'Rerwe';
-	//echo IR_create_post_folder($post_year, $post_name);
-	
-	//$upload_dir = wp_upload_dir();
+	$upload_dir = wp_upload_dir();
 	//pre($upload_dir);
 	
 	$test = '123';
 	
 	global $wpdb;
 	
-	$post_id = 615;
-	$ID_TH = get_post_thumbnail_id( $post_id );
-	$thurl = wp_get_attachment_image_src( $ID_TH, 'full', false );
-	echo '<br>'.$thurl[0];
 	
+	//2007/2011.09.30_kozyrki/000015.jpg
+	//
+	//$wpdb->update($table_posts, $data_th, $where_th, '%s');
+	//wp_generate_attachment_metadata( '601', 	$tfile );
 	
 	//generate site subdir like 'site/3' for missing log
 	$site_subdir = str_replace( 'wp_', 'site/', substr($wpdb->prefix, 0, -1) );
 	
 	
-	$per_check = 15;
+	$per_check = 17;
 	
 	$table_posts = $wpdb->prefix.'posts';
 	$table_process = $wpdb->prefix.'postprocessing';
@@ -243,7 +239,7 @@ if (isset($_POST['check_processing_table']))
 			//preview script work
 			echo '<br><br><img width="100" src="'.$thumb_link.'">';
 			echo '<br>'.$page->post_name;
-			echo '<br>Img count - '.count($oldIMGarray );
+			echo '<br>Img count: '.count($oldIMGarray );
 			
 			
 			if ($mistake_log !== '') {
@@ -258,7 +254,7 @@ if (isset($_POST['check_processing_table']))
 				
 				$projfolder_name = IR_create_projfolder_name($page->post_date, $page->post_name, $page->post_title);
 				$proj_dir = IR_create_post_folder($year, $projfolder_name);
-				echo '<br>'.$proj_dir.'<br>';
+				echo '<br>'.$proj_dir;
 				
 				//merge img array & thumb link
 				$oldIMGarray[] = $thumb_link;
@@ -276,7 +272,7 @@ if (isset($_POST['check_processing_table']))
 					//if (copy($old_img, $remfile['nfl'])) {
 					//	unlink($remfile['ofl']); // удаление оставшейся копии файла, раскомментировать 
 				} */
-				echo '<br>';
+				//echo '<br>';
 				
 				$html = IR_updateContent($imgs, $page->post_content);
 				
@@ -287,15 +283,106 @@ if (isset($_POST['check_processing_table']))
 				$my_post['post_content'] =  $html->outertext;
 				//wp_update_post( $my_post ); //!!!!!!!!!!!!!!!!!!!!!!
 				
-				$data = wp_get_attachment_metadata( $attach_id );
-				echo '<br>Meta - ';
-				pre($data);
-				//echo '<br>\\\\\\\\\\\\\\\\\\\\\\\\|'.$new_content;
-			} 
-						
+				//generate new thumbnails & metadata, update metadata in db
+				$th_links = IR_genTHlinks($post_id, $thumb_link, $proj_dir);
+				$ID_TH = get_post_thumbnail_id( $post_id );
+				$newthumb_dir = $proj_dir.'/'.basename($thumb_link);
+				//$newdata = wp_generate_attachment_metadata( $ID_TH, $newthumb_dir );
+				// update thumbnail metadata
+				//wp_update_attachment_metadata( $ID_TH, $newdata );
+				
+				//update GUID in db
+				$table_posts = $wpdb->prefix.'posts';
+				//$where_th['ID'] = $ID_TH;
+				//$data_th['guid'] = $newthumb_dir['nwlink'];
+				//$wpdb->update($table_posts, $data_th, $where_th, '%s');
+				
+				//update _wp_attached_file
+				//update_attached_file( $ID_TH, $newthumb_dir['nshortlink'] );
+				
+				echo '<br>POST ID '.$post_id;
+				echo '<br>ID_TH '.$ID_TH;
+				//pre($imgs);
+				$remarr = IR_genClonelist($commonIMGarray);
+				
+				echo '<br>REM =========<br>';
+				/* foreach($remarr as $img) {
+					echo '<br>x -> '.$img;
+				} */
+				
+				$totalfs = IR_check_exist($remarr);
+				$IR_Kb = $totalfs/1024;
+				$IR_Kb = round($IR_Kb, 2);
+				$IR_Mb = $totalfs/1024/1024;
+				$IR_Mb = round($IR_Mb, 2);
+				$IR_stat_string = 'Файлов удалено: '.count($remarr).' || Освобождено: '.$IR_Mb.' Мбайт';
+				
+				$post_log = IR_genPostLog($remarr);
+				$post_log = $IR_stat_string.' || '.$post_log;
+				echo '<br>'.$post_log;
+			}
+			
 		}
 	}
 	
+}
+function IR_genPostLog($remarr) {  // return string for log 
+	
+	global $wpdb;
+	//generate site subdir like 'site/3' for log
+	$site_subdir = str_replace( 'wp_', 'site/', substr($wpdb->prefix, 0, -1) );
+	
+	$upload_dir = wp_upload_dir();
+	$log = 'Файлы: ';
+	
+	foreach($remarr as $file) {
+		$elem =  str_replace($upload_dir['basedir'], $site_subdir, $file);
+		$log = $log.$elem.' | ';
+	}
+	// return string for log 
+	return $log;
+}
+
+
+function IR_genClonelist($arr) {  //return array dir clones
+	
+	$upload_dir = wp_upload_dir();
+	
+	foreach($arr as $img) {
+		
+		$file = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $img);
+		$filedir = str_replace(basename($file), '', $file);
+		
+		$mass_sas = find_img_copy($file);
+		foreach($mass_sas as $base) {
+			$remarr[] = $filedir.$base;
+		}
+		
+	}
+
+	// return array dir clones
+	return $remarr;
+	unset($remarr);
+}
+
+function IR_genTHlinks($post_id, $thumb_link, $proj_dir) {// return array of thumbnail links
+	
+	$thumb_id = get_post_thumbnail_id( $post_id );
+	$upload_dir = wp_upload_dir();
+	
+	$nwlink = str_replace( $upload_dir['basedir'], $upload_dir['baseurl'], $proj_dir).'/'.basename($thumb_link);
+	
+	$th_links = array (
+		"name" => basename($thumb_link),
+		"owlink" => $thumb_link,
+		"oflink" => str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $thumb_link),
+		"nflink" => $proj_dir.'/'.basename($thumb_link),
+		"nwlink" => $nwlink,
+		"nshortlink" => str_replace($upload_dir['baseurl'].'/', '', $nwlink),
+	);
+
+	// return array of thumbnail links
+	return $th_links;
 }
 
 function IR_updateContent($imgs, $content) { //return updated post content
