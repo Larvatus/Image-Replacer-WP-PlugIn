@@ -162,6 +162,7 @@ if (isset($_POST['check_processing_table']))
 	$file = 'W:\home\lexlarvatus.com\www/wp-content/uploads/sites/3/2017/02/Koala.jpg';
 	//$bt = filesize($file);
 	
+	
 		
 	$total = 17;
 	$count = 5;
@@ -178,8 +179,13 @@ if (isset($_POST['check_processing_table']))
 	
 	$test = '123';
 	
-	
 	global $wpdb;
+	
+	$post_id = 615;
+	$ID_TH = get_post_thumbnail_id( $post_id );
+	$thurl = wp_get_attachment_image_src( $ID_TH, 'full', false );
+	echo '<br>'.$thurl[0];
+	
 	
 	//generate site subdir like 'site/3' for missing log
 	$site_subdir = str_replace( 'wp_', 'site/', substr($wpdb->prefix, 0, -1) );
@@ -211,8 +217,6 @@ if (isset($_POST['check_processing_table']))
 			//check existance of thumb
 			$thumb_arr[] = $thumb_link;
 			$exist_thumb = IR_check_exist($thumb_arr);
-			//echo '<br>Thumb - exist ';
-			//var_dump($exist_thumb);
 			unset($thumb_arr);
 			
 			//extract image from post (unique elements)
@@ -241,6 +245,7 @@ if (isset($_POST['check_processing_table']))
 			echo '<br>'.$page->post_name;
 			echo '<br>Img count - '.count($oldIMGarray );
 			
+			
 			if ($mistake_log !== '') {
 				
 			}
@@ -248,19 +253,109 @@ if (isset($_POST['check_processing_table']))
 				echo '<br><span style="color: #f33; font-size: 1.2em">MISSING!</span><br>'.$mistake_log;
 				
 			} else { //continue
-				echo '<br>===> ';
-			} 
+				$year = 2007;//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				//$year = substr( $post_date, 0, 4 );
 				
-			
-			//test block
-			//$year = 2007;
-			//$projfolder_name = IR_create_projfolder_name($page->post_date, $page->post_name, $page->post_title);
-			//IR_create_post_folder($year, $projfolder_name).'<br>';
-			
+				$projfolder_name = IR_create_projfolder_name($page->post_date, $page->post_name, $page->post_title);
+				$proj_dir = IR_create_post_folder($year, $projfolder_name);
+				echo '<br>'.$proj_dir.'<br>';
+				
+				//merge img array & thumb link
+				$oldIMGarray[] = $thumb_link;
+				$commonIMGarray = array_unique($oldIMGarray); //delete repeated elements
+				
+				$imgs = IR_genNewLinks($commonIMGarray, $proj_dir);
+				/* foreach ($imgs as $copy) {
+					if (copy($copy['oflink'], $copy['nflink'])) {
+						//unlink($copy['oflink']); // удаление оставшейся копии файла, раскомментировать 
+						echo '<img height="50" src="'.$copy['nwlink'].'"> ';
+					} else {
+						$mistake_log = $mistake_log.' || ';
+					}
+					
+					//if (copy($old_img, $remfile['nfl'])) {
+					//	unlink($remfile['ofl']); // удаление оставшейся копии файла, раскомментировать 
+				} */
+				echo '<br>';
+				
+				$html = IR_updateContent($imgs, $page->post_content);
+				
+				// Создаем массив данных
+				$my_post = array();
+				$my_post['ID'] = $page->ID;
+				//замена содержимого статьи измененной информацией
+				$my_post['post_content'] =  $html->outertext;
+				//wp_update_post( $my_post ); //!!!!!!!!!!!!!!!!!!!!!!
+				
+				$data = wp_get_attachment_metadata( $attach_id );
+				echo '<br>Meta - ';
+				pre($data);
+				//echo '<br>\\\\\\\\\\\\\\\\\\\\\\\\|'.$new_content;
+			} 
+						
 		}
 	}
 	
 }
+
+function IR_updateContent($imgs, $content) { //return updated post content
+	
+	//parsing post content
+	include_once('simple_html_dom.php');
+	$html = str_get_html($content);
+	
+	$element = $html->find('img');
+	
+	foreach($element as $image) {
+		$old_src = $image->src;
+		$key = array_search($old_src, array_column($imgs, 'owlink'));
+		$image->setAttribute('src', $imgs[$key]['nwlink']);
+		
+		if ($image->parent()->tag == 'a') { 
+			$pos = strripos($image->parent()->href, home_url()); //проверка на соответствие домену
+			if ($pos === false) {
+				//Out link 
+			} else {
+				$a = substr($image->parent()->href, -4); // read extension like ".jpg"
+				if ( $a == '.jpg' || $a == '.JPG' || $a == '.png' || $a == '.PNG' || $a == '.gif' || $a == '.GIF') {
+					$old_href = $image->parent()->href;
+					$key = array_search($old_href, array_column($imgs, 'owlink'));
+					$image->parent()->setAttribute('href', $imgs[$key]['nwlink']);
+				} else { //Not img link
+				}
+			}
+		}
+	}
+	$new_content = $html;
+	
+	// return updated post content
+	return $new_content;
+}
+
+function IR_genNewLinks($array, $dir) {
+	
+	$upload_dir = wp_upload_dir();
+	
+	foreach ($array as $oldlink) {
+		
+		$gen_links = array (
+			"name" => basename($oldlink),
+			"owlink" => $oldlink,
+			"oflink" => str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $oldlink),
+			"nflink" => $dir.'/'.basename($oldlink),
+			"nwlink" => str_replace( $upload_dir['basedir'], $upload_dir['baseurl'], $dir).'/'.basename($oldlink),
+		);
+		
+		$total_array[] = $gen_links;
+		unset($gen_links);
+		
+	}
+	//return array
+	return $total_array;
+	
+	unset($total_array);
+}
+
 function IR_updateMistakeLog($mistake_log, $data, $thumb) {//return string from missing shortlinks
 	
 	global $wpdb;
@@ -290,16 +385,11 @@ function IR_updateMistakeLog($mistake_log, $data, $thumb) {//return string from 
 function IR_extract_thumb_link ($post_id) { //return thumb link
 
 	//Извлечение ссылки на превью поста
-	global $wpdb;
-	$table_postmeta = $wpdb->prefix.'postmeta';
-	$table_posts = $wpdb->prefix.'posts';
-	$id_thumbs = $wpdb->get_results("SELECT meta_value FROM $table_postmeta WHERE post_id=$post_id AND meta_key ='_thumbnail_id' ");
-	$ID_TH = $id_thumbs[0]->meta_value;
-	$thumb_links = $wpdb->get_results("SELECT guid FROM $table_posts WHERE ID=$ID_TH");
-	$thumb_link = $thumb_links[0]->guid;
+	$ID_TH = get_post_thumbnail_id( $post_id );
+	$thurl = wp_get_attachment_image_src( $ID_TH, 'full', false );
 	
 	//return thumb link
-	return $thumb_link;
+	return $thurl[0];
 }
 
 function IR_check_exist($array) { // return total filesise or mistake array
