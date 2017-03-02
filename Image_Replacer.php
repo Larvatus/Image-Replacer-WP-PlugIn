@@ -156,17 +156,17 @@ if (isset($_POST['check_processing_table']))
 	}
 	//=====================================================  Test code 
 	
-	$attach_id = 1639;
-	$array = wp_get_attachment_metadata( $attach_id );	
+	//$attach_id = 1639;
+	//$array = wp_get_attachment_metadata( $attach_id );	
 	//pre($array);
-	$file = 'W:\home\lexlarvatus.com\www/wp-content/uploads/sites/3/2017/02/Koala.jpg';
+	//$file = 'W:\home\lexlarvatus.com\www/wp-content/uploads/sites/3/2017/02/Koala.jpg';
 	//$bt = filesize($file);
 	
 	
 		
-	$total = 17;
+	/* $total = 17;
 	$count = 5;
-	$size = 11002350;
+	$size = 11002350; */
 	//IR_resetStat();
 	//IR_updateStat($total,$count,$size);
 	
@@ -175,16 +175,20 @@ if (isset($_POST['check_processing_table']))
 	
 	$test = '123';
 	
-	global $wpdb;
+	//global $wpdb;
 	
-	
+	$dir = "W:\home\lexlarvatus.com\www/wp-content/uploads/sites/3/2011/2011.09.08_testovaya-podsvetka-trk-magistrat";
+	//$filedircount = IR_newfilecount($dir);
+	//echo '<br>In folder - '.$filedircount;
+
 	//2007/2011.09.30_kozyrki/000015.jpg
 	//
 	//$wpdb->update($table_posts, $data_th, $where_th, '%s');
 	//wp_generate_attachment_metadata( '601', 	$tfile );
 	
 	//generate site subdir like 'site/3' for missing log
-	$site_subdir = str_replace( 'wp_', 'site/', substr($wpdb->prefix, 0, -1) );
+	
+	/* $site_subdir = str_replace( 'wp_', 'site/', substr($wpdb->prefix, 0, -1) );
 	
 	
 	$per_check = 17;
@@ -199,133 +203,39 @@ if (isset($_POST['check_processing_table']))
 		AND post_type = 'post' AND ID IN (SELECT post_id FROM $table_process WHERE processmistake = 0 AND processed = 0)
 		LIMIT $per_check
 		"
-	);
-		
-	if( $pages ) {
-		foreach ( $pages as $page ) {
-			$post_date = $page->post_date;
-			$post_id = $page->ID;
-			$mistake_log = '';
-			
-			//extract thumb
-			$thumb_link = IR_extract_thumb_link($post_id);
-						
-			//check existance of thumb
-			$thumb_arr[] = $thumb_link;
-			$exist_thumb = IR_check_exist($thumb_arr);
-			unset($thumb_arr);
-			
-			//extract image from post (unique elements)
-			$oldIMGarray = IR_getIMGarray($page->post_content);
-			
-			//check existance every element
-			$exist_array = IR_check_exist($oldIMGarray);
-			//echo '<br>Array - exist ';
-			//var_dump($exist_array);
-			
-			if (gettype($exist_thumb) == integer) { //if thumb exist
-				//echo '; Thumb - '.round($exist_thumb/1024/1024, 2).' Mb';
-			} else {
-				$mistake_log = IR_updateMistakeLog($mistake_log, $exist_thumb, 1);
-			}
-			
-			if (gettype($exist_array) == integer) {
-				//echo round($exist_array/1024/1024, 2).' Mb';
-			} else {
-				$mistake_log = IR_updateMistakeLog($mistake_log, $exist_array, 0);
-			}
-			
-			
-			//preview script work
-			echo '<br><br><img width="100" src="'.$thumb_link.'">';
-			echo '<br>'.$page->post_name;
-			echo '<br>Img count: '.count($oldIMGarray );
-			
-			
-			if ($mistake_log !== '') {
-				
-			}
-			if ($mistake_log !== '') { //stop cycle
-				echo '<br><span style="color: #f33; font-size: 1.2em">MISSING!</span><br>'.$mistake_log;
-				
-			} else { //continue
-				$year = 2007;//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-				//$year = substr( $post_date, 0, 4 );
-				
-				$projfolder_name = IR_create_projfolder_name($page->post_date, $page->post_name, $page->post_title);
-				$proj_dir = IR_create_post_folder($year, $projfolder_name);
-				echo '<br>'.$proj_dir;
-				
-				//merge img array & thumb link
-				$oldIMGarray[] = $thumb_link;
-				$commonIMGarray = array_unique($oldIMGarray); //delete repeated elements
-				
-				$imgs = IR_genNewLinks($commonIMGarray, $proj_dir);
-				/* foreach ($imgs as $copy) {
-					if (copy($copy['oflink'], $copy['nflink'])) {
-						//unlink($copy['oflink']); // удаление оставшейся копии файла, раскомментировать 
-						echo '<img height="50" src="'.$copy['nwlink'].'"> ';
-					} else {
-						$mistake_log = $mistake_log.' || ';
-					}
-					
-					//if (copy($old_img, $remfile['nfl'])) {
-					//	unlink($remfile['ofl']); // удаление оставшейся копии файла, раскомментировать 
-				} */
-				//echo '<br>';
-				
-				$html = IR_updateContent($imgs, $page->post_content);
-				
-				// Создаем массив данных
-				$my_post = array();
-				$my_post['ID'] = $page->ID;
-				//замена содержимого статьи измененной информацией
-				$my_post['post_content'] =  $html->outertext;
-				//wp_update_post( $my_post ); //!!!!!!!!!!!!!!!!!!!!!!
-				
-				//generate new thumbnails & metadata, update metadata in db
-				$th_links = IR_genTHlinks($post_id, $thumb_link, $proj_dir);
-				$ID_TH = get_post_thumbnail_id( $post_id );
-				$newthumb_dir = $proj_dir.'/'.basename($thumb_link);
-				//$newdata = wp_generate_attachment_metadata( $ID_TH, $newthumb_dir );
-				// update thumbnail metadata
-				//wp_update_attachment_metadata( $ID_TH, $newdata );
-				
-				//update GUID in db
-				$table_posts = $wpdb->prefix.'posts';
-				//$where_th['ID'] = $ID_TH;
-				//$data_th['guid'] = $newthumb_dir['nwlink'];
-				//$wpdb->update($table_posts, $data_th, $where_th, '%s');
-				
-				//update _wp_attached_file
-				//update_attached_file( $ID_TH, $newthumb_dir['nshortlink'] );
-				
-				echo '<br>POST ID '.$post_id;
-				echo '<br>ID_TH '.$ID_TH;
-				//pre($imgs);
-				$remarr = IR_genClonelist($commonIMGarray);
-				
-				echo '<br>REM =========<br>';
-				/* foreach($remarr as $img) {
-					echo '<br>x -> '.$img;
-				} */
-				
-				$totalfs = IR_check_exist($remarr);
-				$IR_Kb = $totalfs/1024;
-				$IR_Kb = round($IR_Kb, 2);
-				$IR_Mb = $totalfs/1024/1024;
-				$IR_Mb = round($IR_Mb, 2);
-				$IR_stat_string = 'Файлов удалено: '.count($remarr).' || Освобождено: '.$IR_Mb.' Мбайт';
-				
-				$post_log = IR_genPostLog($remarr);
-				$post_log = $IR_stat_string.' || '.$post_log;
-				echo '<br>'.$post_log;
-			}
-			
-		}
-	}
+	); */
+	//$per_check = 1;
 	
+	
+		
+	
+	 
 }
+function IR_sc($size, $id) {// return string :: "23,45 Мбайт"
+	switch ($id) {
+	case 0:
+		//байт
+		$sizestring = $size.' байт';
+		break;
+	case 1:
+		//Кбайт
+		$sizestring = round(($size/1024), 2).' Кбайт';
+		break;
+	case 2:
+	   //Мбайт
+	   $sizestring = round(($size/1024/1024), 2).' Мбайт';
+	   break;
+	case 3:
+	   //Гбайт
+	   $sizestring = round(($size/1024/1024/1024), 2).' Гбайт';
+	   break;
+	//default:
+	   //Do
+	}
+	// return string :: "23,45 Мбайт"
+	return $sizestring;
+}
+
 function IR_genPostLog($remarr) {  // return string for log 
 	
 	global $wpdb;
@@ -417,6 +327,10 @@ function IR_updateContent($imgs, $content) { //return updated post content
 	
 	// return updated post content
 	return $new_content;
+	
+	// подчищаем за собой
+	$html->clear(); 
+	unset($html);
 }
 
 function IR_genNewLinks($array, $dir) {
@@ -484,18 +398,27 @@ function IR_check_exist($array) { // return total filesise or mistake array
 	$upload_dir = wp_upload_dir();
 	$exist = 0;
 	$total_filesize = 0;
-	foreach($array as $link) {
+	if (is_array($array)) {
+		foreach($array as $link) {
+			//get dir link
+			$old_file = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $link );
+			
+			if (file_exists($old_file) ) { 
+				$exist++;
+				$total_filesize = $total_filesize + filesize($old_file);
+			} else { 
+				$missing[] = $old_file;
+			}
+		}
+	} else {
 		//get dir link
-		$old_file = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $link );
-		
-		if (file_exists($old_file) ) { 
-			$exist++;
+		$old_file = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $array );
+		if (file_exists($old_file) ) {
 			$total_filesize = $total_filesize + filesize($old_file);
-		} else { 
+		} else {
 			$missing[] = $old_file;
 		}
 	}
-	
 	// return total filesise or missing files array
 	if (count($array) == $exist) { 
 		return $total_filesize; 
@@ -550,12 +473,7 @@ function IR_getStat() { //return statistic
 	$IR_stat_array = json_decode($IR_filedata[0]->option_value);
 	
 	//prepare data
-	$IR_size = $IR_stat_array->Removed_filesize;
-	$IR_Kb = $IR_size/1024;
-	$IR_Kb = round($IR_Kb, 2);
-	$IR_Mb = $IR_size/1024/1024;
-	$IR_Mb = round($IR_Mb, 2);
-	$IR_stat_string = '<br>Файлов обработано: '.$IR_stat_array->Total_filecount.'<br>Файлов удалено: '.$IR_stat_array->Removed_filecount.'<br>Освобождено: '.$IR_Mb.' Мбайт';
+	$IR_stat_string = '<br>Всего файлов обработано: '.$IR_stat_array->Total_filecount.'<br>Всего файлов удалено: '.$IR_stat_array->Removed_filecount.'<br>Всего освобождено: '.IR_sc($IR_stat_array->Removed_filesize, 2);
 	
 	//return statistic
 	return $IR_stat_string;
@@ -583,6 +501,22 @@ function IR_updateStat($total_filecount, $remove_filecount, $remove_filesize) { 
 	$where['option_name'] = 'Image_Replacer_filedata';
 	$wpdb->update($table_options, $data, $where, array('%s','%s'));
 }
+
+
+function IR_newfilecount($dir) {
+	
+	$dir = opendir($dir);
+	$count = 0;
+	while($file = readdir($dir)){
+		if($file == '.' || $file == '..' || is_dir($dir . $file)){
+			continue;
+		}
+		$count++;
+	}
+	// Type your code here
+	return $count;
+}
+
 function IR_resetStat() { //reset & update data in table
 	
 	global $wpdb;
@@ -688,7 +622,16 @@ function IR_create_post_folder($year, $proj_name) { //return project folder dir
 	return $proj_dir;
 }
 
-function IR_create_projfolder_name ($post_date, $post_name, $post_title) { //return project folder name
+function IR_getPostDate($postdate){ //return array {y,m,d}
+	
+	$date['Y'] = substr( $postdate, 0, 4 );
+	$date['M'] = substr( $postdate, 5, 2 );
+	$date['D'] = substr( $postdate, 8, 2 );
+	$date['YMD'] = $date['Y'].'.'.$date['M'].'.'.$date['D'];
+	
+	return $date;
+}
+function IR_create_projfolder_name ($pdate, $post_name, $post_title) { //return project folder name
 	
 	if (substr($post_name, 0, 1) == "%"  ) {
 		$proj_name = translit($post_title);
@@ -696,10 +639,7 @@ function IR_create_projfolder_name ($post_date, $post_name, $post_title) { //ret
 		$proj_name = $post_name;
 	}
 	
-	$month = substr( $post_date, 5, 2 );
-	$day = substr( $post_date, 8, 2 );
-	$year = substr( $post_date, 0, 4 );
-	$proj_name = $year.".".$month.".".$day."_".$proj_name;
+	$proj_name = $pdate['YMD']."_".$proj_name;
 	
 	//return project folder name
 	return $proj_name;
@@ -709,43 +649,14 @@ function test_parseposts() {
 	
 	global $upload_dir;
 	$upload_dir = wp_upload_dir();
-	
-	//cut  /sites/3 = http://lexlarvatus.com/lex/wp-content/uploads
-	$IRL['up_url'] = preg_replace( "/\/sites\/[0-9]/", '',  $upload_dir['baseurl'] ); 
-	
-	//cut  /sites/3 = W:\home\lexlarvatus.com\www/wp-content/uploads
-	$IRL['up_dir'] = preg_replace( "/\/sites\/[0-9]/", '',  $upload_dir['basedir'] ); 
-	
-	$IRL['proj'] = '/projects';
-	
-	$IRL['proj_dir'] = $IRL['up_dir'].$IRL['proj'];
-	
-	$home_url = home_url();
-	
-	//Создание каталога /projects
-	if (file_exists($IRL['proj_dir'])) {} else { mkdir($IRL['proj_dir'], 0755); }
-	//define user folder 
-	switch (get_current_blog_id()) {
-		case 1: $projname = '/Common'; break;
-		case 2: $projname = '/Elena'; break;
-		case 3: $projname = '/Lex'; break;
-	}
-	
-	$IRL['user_proj_dir'] = $IRL['proj_dir'].$projname;
-	
-	$IRL['user_proj_url'] = $IRL['up_url'].$IRL['proj'].$projname;
-	
-	//Создание каталога /projects/*User*
-	if (file_exists($IRL['user_proj_dir'])) {} else { mkdir($IRL['user_proj_dir'], 0755); }//Создание персонального каталога
-	
-	
+		
 	global $wpdb;
 	
 	$per_check = $_POST['per_check'];
-	
 	$table_posts = $wpdb->prefix.'posts';
 	$table_process = $wpdb->prefix.'postprocessing';
-	/* вытаскивает из базы данных заголовки и содержимое всех опубликованных страниц без ошибок и проверенных ранее*/ //FROM $wpdb->posts
+	/* вытаскивает из базы данных заголовки и содержимое всех опубликованных страниц без ошибок и проверенных ранее*/ 
+	//FROM $wpdb->posts
 	$pages = $wpdb->get_results( 
 		"
 		SELECT post_title, post_content, ID, post_date, post_name
@@ -760,263 +671,141 @@ function test_parseposts() {
 		echo '<br>Найдено и обработано: '.count($pages).'/'.$per_check;
 	}
 	
-
 	if( $pages ) {
 		foreach ( $pages as $page ) {
-			$post_date = $page->post_date;
-			$post_id = $page->ID;
-			//$source_date = substr($post_date, 0, 10);
-			$month = substr( $post_date, 5, 2 );
-			$day = substr( $post_date, 8, 2 );
-			$year = substr( $post_date, 0, 4 );
-			//if( wp_checkdate( $month, $day, $year, $source_date ) ){ } //проверка даты пройдена, дата реальна
 			
-			if (substr($page->post_name, 0, 1) == "%"  ) {
-				$projfolder_name = translit($page->post_title);
-			} else {
-				$projfolder_name = $page->post_name;
-			}
+			$mistake_log = '';
 			
-			$year_dir = $IRL['user_proj_dir']."/".$year;
-			//Создание каталога года
-			if (file_exists($year_dir)) {} else { mkdir($year_dir, 0755); }
-			
-			//$new_folder_name = $proj_folder_name
-			$IRL['proj_folder_name'] = "/".$year.".".$month.".".$day."_".$projfolder_name;
-			$IRL['proj_folder_dir'] = $year_dir.$IRL['proj_folder_name'];
-			$IRL['proj_folder_url'] = $IRL['user_proj_url']."/".$year.$IRL['proj_folder_name'];
-			
-			//Создание каталога проекта
-			if (file_exists($IRL['proj_folder_dir'])) {} else { mkdir($IRL['proj_folder_dir'], 0755);}
-			//include_once('simple_html_dom.php');
-			
-			// get DOM from URL or file
-			//$html = new simple_html_dom();
-			$temp_post_content = $page->post_content;
-			$html = str_get_html($temp_post_content);
-			
-			//Вывод статистики о статье
-			$element = $html->find('img');
-			echo '</hr><a href="'.home_url().'/?p='.$post_id.'"><h3>'.$page->post_title.'</h3></a>'.'<span style="color: #999; font-size: 0.7em">Опубликовано: '.$post_date;
-			echo '<br>Изображений: '.count($element).'<br></span>'; 
-			echo '<br><div style="color: #99c; font-size: 0.7em; width:300px;">'.$html->plaintext.'</div>';
-			
-			
-			$mistake = 0;
-			$mistake_log = "";
-			$match = 0;
-			//Извлечение ссылки на превью поста
-			$table_postmeta = $wpdb->prefix.'postmeta';
-			$id_thumbs = $wpdb->get_results("SELECT meta_value FROM $table_postmeta WHERE post_id=$post_id AND meta_key ='_thumbnail_id' ");
-			$ID_TH = $id_thumbs[0]->meta_value;
-			$thumb_links = $wpdb->get_results("SELECT guid FROM $table_posts WHERE ID=$ID_TH");
-			$thumb_link = $thumb_links[0]->guid;
-			$thumb_name = preg_replace( "/[-][0-9]+[x][0-9]+.[a-z]{3}/", '',basename($thumb_link));
-			$thumb_name = preg_replace( "/[.][a-z]{3}/", '',$thumb_name);
-			if (count($element) == 1) {
-				echo '<br>Element - '.$element->src;
-				if (basename($thumb_link)== basename($element->src)) {
-					echo '<br>'.basename($thumb_link).' = '.basename($element->src);
-					}
-			}
-			if (count($element) == 0) {
-				echo '<br><div style="color: #944; font-size: 1.7em;">Статья пропущена!</div>';
-			} else {
-				// find all image
-				foreach($html->find('img') as $image) {
+			//extract thumb - 'http....jpg'
+			$thumb_link = IR_extract_thumb_link($page->ID);
 					
-					$IR_old_url = $image->src;//$path_parts['basename'];
-					$gen_links = IR_get_links($image->src, $IRL); //генерация старых и новых ссылок для web и сервера
-					$names[] = $gen_links; //добавление ссылок в массив
-					$image->setAttribute('src', $gen_links["nwlink"]); //замена ссылки в тексте статьи
-					unset($gen_links);
-					//=============== <a href='?'> <img></a>====
-					if ($image->parent()->tag == 'a') { 
-						$pos = strripos($image->parent()->href, home_url()); //проверка на соответствие домену
-						if ($pos === false) {
-							/* echo "<br>Img -> parent a href: - Ссылка на внешний источник."; */
-						} else {
-							$a = substr($image->parent()->href, -4);
-							if ( $a == '.jpg' || $a == '.JPG' || $a == '.png' || $a == '.PNG' || $a == '.gif' || $a == '.GIF') {
-								//echo '<br>Valid link find!';
-								$i = 0;
-								foreach($names as $name) {
-									if ($name['name'] == basename($image->parent()->href)) { $i++; /* echo '<br>В массиве уже есть '.basename($image->parent()->href); */}
-								}
-								$gen_links = IR_get_links($image->parent()->href, $IRL);
-								if ( $i > 0 ) {//Проверка присутствия имени картинки в массиве
-									//echo '<br>Thumb in array';
-								} else {
-									$names[] = $gen_links; //добавление ссылок в массив
-								}
-								$image->parent()->setAttribute('href', $gen_links["nwlink"]); //замена ссылки в тексте статьи
-								unset($gen_links);
-							} else { /* echo '<br>Img -> parent a href: - Ссылка не на изображение.<br>'; */}
-						}
-					}
-					//==========================================================
-					unset($gen_links);
-				}
-				echo '<br>Каталог: '.$IR_old_url ;
-				// add post preview in array
-				/* $t = 0;
-				if ($thumb_link !== NULL) {
-					foreach($names as $tname) {
-						if ($tname['name'] == basename($thumb_link)) { $t++;}
-					}
-					$gen_links = IR_get_links($thumb_link, $IRL);
-					$new_thumb_wlink = $gen_links["nwlink"];//сохранение для отдельного запроса
-					if ( $t > 0 ) {//Проверка присутствия имени картинки в массиве
-					} else {
-						$names[] = $gen_links; //добавление ссылок в массив
-					}
-				} else { 
-					$mistake = 1;
-					$mistake_log = $mistake_log.' <br>Thumbnail is EMPTY!';
-				} */
-				//Existing check
-				$exist = 0;
+			//check existance of thumb - filesize or mistake
+			$exist_thumb = IR_check_exist($thumb_arr);
+			
+			//extract image from post (unique elements)
+			$oldIMGarray = IR_getIMGarray($page->post_content);
+			
+			//check existance every element - size or mistake
+			$exist_array = IR_check_exist($oldIMGarray);
+			
+			if (gettype($exist_thumb) == integer) { } else {
+				$mistake_log = IR_updateMistakeLog($mistake_log, $exist_thumb, 1);
+			}
+			if (gettype($exist_array) == integer) { } else {
+				$mistake_log = IR_updateMistakeLog($mistake_log, $exist_array, 0);
+			}
 				
-				foreach($names as $isexist) {
-					if (file_exists($isexist['oflink']) ) { 
-						//echo ' File exist';
-						$exist++;
-					} else {
-						//echo'ZZ';
-						$mistake = 1;
-						$mistake_log = $mistake_log.' <br> Не найден файл: '.$isexist['oflink'];
-					}
-				}
+			//generate array {y,m,d}
+			$pdate = IR_getPostDate($page->post_date);
+			
+			if ($mistake_log !== '') { //stop cycle
+				echo '<br><span style="color: #f33; font-size: 1.2em">MISSING!</span><br>'.$mistake_log;
 				
-				if ($exist == count($names)) {
-					//find copy
-					foreach($names as $unic) { //ищем колонов
-						
-						if (isset($name_clone_arr)) { 
-							$c = 0;
-							foreach($name_clone_arr as $clone) { //выделить из нового массива элемент
-								if ($unic['name'] == $clone['name']) {//сравнить его с выбранным в первом элемента 
-									$c++;
-								} else { 
-								}
-							} 
-							if ($c == 0) {
-								$mass_sas = find_img_copy($unic['oflink']);
-								foreach($mass_sas as $cloneT) {
-									$name_clone_arr[] = array( 
-										'name' => $cloneT,
-										'ofl' => dirname($unic['oflink']).'/'.$cloneT,
-										'nfl' => dirname($unic['nflink']).'/'.$cloneT,
-									);
-									
-								}
-							}
-						} else {//create array from 1st element of $names array
-							$mass_sas = find_img_copy($unic['oflink']);
-								foreach($mass_sas as $clone) {
-									$name_clone_arr[] = array( 
-										'name' => $clone,
-										'ofl' => dirname($unic['oflink']).'/'.$clone,
-										'nfl' => dirname($unic['nflink']).'/'.$clone,
-									);
-									
-								}
-						}
-					}
-					echo '<div style="color: #777; font-size: 0.85em; "><table><td><b>Найдено клонов - '.count($name_clone_arr).':</b><ol>';
-					foreach($name_clone_arr as $clu) { echo '<li>'.$clu['name'].'</li>';} //вывели всех юников
-					echo '</ol></td><td><b>Перемещены из /uploads/:</b><ol>';
-					//удаляем
-					foreach($name_clone_arr as $remfile) { 
-								/* unlink($remfile['oflink']); */ 
-								
-								
-								if (copy($remfile['ofl'], $remfile['nfl'])) {
-									unlink($remfile['ofl']); // удаление оставшейся копии файла, раскомментировать 
-									echo '<li>'.str_replace($upload_dir['basedir'], "", $remfile['ofl']).'</li>'; //
-								} else { 
-									echo '<br><span style="color: #c55;">Ошибка при копировании! - '.$remfile['owl'].'</span><br>';
-									$mistake = 1;
-									$mistake_log = $mistake_log.'<br>Ошибка при копировании! - '.$remfile['owl'].'||';
-									$error_moving++;
-								}
-							} // удаление оставшейся копии файла, раскомментировать 
-					echo'</ol></td></table></div>';
-					//Move
-					$error_moving = 0;
-					foreach($names as $file) {
-						echo '<img width=\'70\' src=\''.$file['nwlink'].'\' title=\''.$file['name'].'\'> ';
-					}
-					if ($error_moving == 0) {
-						//foreach($names as $remfile) { unlink($remfile['oflink']); } // удаление оставшейся копии файла, раскомментировать 
-					}
-				} else { /* echo '<br>Один из файлов не найден. Exist - '.$exist.' В names '.count($names).' элементов.'; */}
-				
-				//
-				//$json_img = json_encode($j_img);
-				echo '</br><span style="color: #c55;">'.$mistake_log.'</span>';
-				
-				//Запись отчета в  ------------postprocessing
 				$table_process = $wpdb->prefix.'postprocessing';
 				$data = array();
-				//$data['log'] = $json_img;
-				$data['processmistake'] = $mistake;
-				if ($mistake == 1) {$data['processed'] = '0';} else {$data['processed'] = '1';}
+				$data['log'] = $post_log;
+				$data['processmistake'] = '1';
+				$data['processed'] = '0';
 				$data['mistake_log'] = $mistake_log;
 				$where['post_id'] = $page->ID;
 				
 				$wpdb->update($table_process, $data, $where, array( '%s', '%d', '%d' ));
 				
+			} else { //continue
 				
-				// Обновляем данные в БД      WORK
-				if ($mistake == 1) {
-					echo '<br> Запись с ID = '.$page->ID.' не обновлена в Wordpress.';
-				} else {
-					// Создаем массив данных
-					$my_post = array();
-					$my_post['ID'] = $page->ID;
-					//замена содержимого статьи измененной информацией
-					$my_post['post_content'] =  $html->outertext;
-					wp_update_post( $my_post );
+				$projfolder_name = IR_create_projfolder_name($pdate, $page->post_name, $page->post_title);
+				$proj_dir = IR_create_post_folder($pdate['Y'], $projfolder_name);
+				
+				//merge img array & thumb link
+				$oldIMGarray[] = $thumb_link;
+				$commonIMGarray = array_unique($oldIMGarray); //delete repeated elements
+				$IRS['unic_img'] = count($commonIMGarray );
+				
+				$imgs = IR_genNewLinks($commonIMGarray, $proj_dir);
+				$existfilesize = 0;
+				$IRS['post_img_prev'] = '';
+				foreach ($imgs as $copy) {
+					if (copy($copy['oflink'], $copy['nflink'])) {
+						$existfilesize = $existfilesize+filesize($copy['nflink']);
+						$IRS['post_img_prev'] = $IRS['post_img_prev'].'<img height="50" src="'.$copy['nwlink'].'"> ';
+					} else {
+						$mistake_log = $mistake_log.' || Copy error: '.$copy['oflink'];
+					}
 					
-					
-					//Замена ссылки на линк в 
-					/* $thumb_table_name = $wpdb->prefix.'post';
-					echo '<br>ID_TH: '.$ID_TH;
-					$where_th['ID'] = $ID_TH;
-					$data_th['guid'] = $new_thumb_wlink;
-					$wpdb->update($thumb_table_name, $data_th, $where, '%s'); */
-					
-					//$wpdb->update()
-					//заменяет линк на превью поста в таблице.
-					/* $wpdb->update($table_posts,//table
-						array('guid' => $new_thumb_wlink), //data ('column' => 'value', 'column' => 'value'),
-						array('ID' => $ID_TH),
-						array( '%s' ), //format %s - string, %d - число
-						array( '%d' ) //where_format
-					); */
-					//--update _wp_attached_file
-					//update_attached_file( $ID_TH, $new_thumb_wlink );
-					
-					/* $wpdb->update('wp_postmeta',//table
-						array('meta_value' => str_replace($upload_dir['baseurl'].'/', '', $new_thumb_wlink) ), //data ('column' => 'value', 'column' => 'value'),
-						array('post_id' => $ID_TH, 'meta_key' => '_wp_attached_file'),
-						array( '%s' ), //format %s - string, %d - число
-						array( '%d' ) //where_format
-					); */
-					echo '<br>Запись с ID = '.$my_post['ID'].' обновлена в Wordpress.';
 				}
+				$IRS['oldfs'] = $existfilesize;
+				$html = IR_updateContent($imgs, $page->post_content);
 				
-				 
-				//unset($j_img);
+				// Создаем массив данных
+				$my_post = array();
+				$my_post['ID'] = $page->ID;
+				//замена содержимого статьи измененной информацией
+				$my_post['post_content'] =  $html->outertext;
+				wp_update_post( $my_post ); 
+				
+				//generate new thumbnails & metadata, update metadata in db
+				$th_links = IR_genTHlinks($page->ID, $thumb_link, $proj_dir);
+				$ID_TH = get_post_thumbnail_id( $page->ID );
+				$newthumb_dir = $proj_dir.'/'.basename($thumb_link);
+				$newdata = wp_generate_attachment_metadata( $ID_TH, $newthumb_dir );
+				// update thumbnail metadata
+				wp_update_attachment_metadata( $ID_TH, $newdata );
+								
+				//update GUID in db
+				$table_posts = $wpdb->prefix.'posts';
+				$where_th['ID'] = $ID_TH;
+				$data_th['guid'] = $th_links['nwlink']; //$newthumb_dir['nwlink']
+				$wpdb->update($table_posts, $data_th, $where_th, '%s');
+				
+				//update _wp_attached_file
+				update_attached_file( $ID_TH, $th_links['nshortlink'] );//$newthumb_dir['
+				
+				
+				$remarr = IR_genClonelist($commonIMGarray);
+				$IRS['clone_img'] = count($remarr);
+				$IRS['rem_img'] = $IRS['clone_img'] - $IRS['unic_img']-3;
+				$IRS['totalfs'] = IR_check_exist($remarr);
+				$IRS['remfs'] = $IRS['totalfs'] - $IRS['oldfs'];
+				$post_log = IR_genPostLog($remarr);
+				$post_stat = 'Файлов удалено: '.$IRS['rem_img'].' | Было занято: '.IR_sc($IRS['totalfs'], 2).' | Без изменения: '.IR_sc($IRS['oldfs'], 2).' | Освобождено: '.IR_sc($IRS['remfs'], 2);
+				$post_log = $post_stat.' || '.$post_log;
+				
+				// удаление клонов
+				foreach($remarr as $img) { unlink($img);} 
+				
+				//update processing
+				//Запись отчета в  ------------postprocessing
+				$table_process = $wpdb->prefix.'postprocessing';
+				$data = array();
+				$data['log'] = $post_log;
+				$data['processmistake'] = '0';
+				$data['processed'] = '1';
+				$data['mistake_log'] = $mistake_log;
+				$where['post_id'] = $page->ID;
+				
+				$wpdb->update($table_process, $data, $where, array( '%s', '%d', '%d' ));
+				
+				IR_updateStat($IRS['clone_img'], $IRS['rem_img'], $IRS['remfs']);
+				
+				//preview script work
+				echo IR_getStat();
+				echo '<br></hr><a href="'.home_url().'/?p='.$page->ID.'"><h3>'.$page->post_title.'</h3></a>';
+				echo '<span style="color: #666; font-size: 0.9em">Опубликовано: '.$pdate['YMD'];
+				echo ' | Изображений проекта: '.$IRS['unic_img'].' ('.IR_sc($IRS['oldfs'], 2).')';
+				echo '<br>'.$post_stat.'<br><br><img width="100" src="'.$th_links['nwlink'].'">';
+				echo '<br>'.$proj_dir.'<br><br>'.$IRS['post_img_prev'].'<br>[ POST ID: '.$page->ID;
+				echo ' TH ID: '.$ID_TH.' ]<br>Удалено:';
+				echo '<ol>';
+				foreach($remarr as $img) {
+					echo '<li>'.$img.'</li>';
+				}
+				echo '</ol></span>';
 			
-			}// if post haven't image
-			
-			$html->clear(); // подчищаем за собой 
-			unset($html);
+			}
 			
 		}
 	}
+	
 }
 
     
