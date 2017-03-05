@@ -69,10 +69,8 @@ function test_options_page() {
 		require_once(ABSPATH . 'wp-admin/includes/upgrade.php'); //log TEXT NULL,
 		  
 		dbDelta( $sql );
-		$table_options = $wpdb->prefix.'options';
-		$IR_beginData = '{"Total filecount":0,"Removed filecount":0,"Removed filesize":0}';
-		$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filedata' , '$IR_beginData' , 'no' )");
 		
+		IR_createOptionCell();
 		
 	} else { 
 		//echo '</br>Table <b>'.$table_process.'</b> exist.</br>';
@@ -156,100 +154,63 @@ if (isset($_POST['check_processing_table']))
 	}
 	//=====================================================  Test code 
 	
-	//$attach_id = 1639;
-	//$array = wp_get_attachment_metadata( $attach_id );	
-	//pre($array);
 	//$file = 'W:\home\lexlarvatus.com\www/wp-content/uploads/sites/3/2017/02/Koala.jpg';
-	//$bt = filesize($file);
-	
+	//IR_resetStat();
+	//$dir = "W:\home\lexlarvatus.com\www/wp-content/uploads/sites/3/2011/2011.09.08_testovaya-podsvetka-trk-magistrat";
 	
 		
-	/* $total = 17;
-	$count = 5;
-	$size = 11002350; */
-	//IR_resetStat();
-	//IR_updateStat($total,$count,$size);
+	global $wpdb;
 	
-	$upload_dir = wp_upload_dir();
-	//pre($upload_dir);
-	
-	$test = '123';
-	
-	//global $wpdb;
-	
-	$dir = "W:\home\lexlarvatus.com\www/wp-content/uploads/sites/3/2011/2011.09.08_testovaya-podsvetka-trk-magistrat";
-	//$filedircount = IR_newfilecount($dir);
-	//echo '<br>In folder - '.$filedircount;
-
-	//2007/2011.09.30_kozyrki/000015.jpg
-	//
-	//$wpdb->update($table_posts, $data_th, $where_th, '%s');
-	//wp_generate_attachment_metadata( '601', 	$tfile );
-	
-	//generate site subdir like 'site/3' for missing log
-	
-	/* $site_subdir = str_replace( 'wp_', 'site/', substr($wpdb->prefix, 0, -1) );
-	
-	
-	$per_check = 17;
-	
+	//$per_check = 0;
 	$table_posts = $wpdb->prefix.'posts';
 	$table_process = $wpdb->prefix.'postprocessing';
+	/* вытаскивает из базы данных заголовки и содержимое всех опубликованных страниц без ошибок и проверенных ранее*/ 
+	//FROM $wpdb->posts
 	$pages = $wpdb->get_results( 
 		"
 		SELECT post_title, post_content, ID, post_date, post_name
 		FROM $table_posts
 		WHERE post_status = 'publish' 
-		AND post_type = 'post' AND ID IN (SELECT post_id FROM $table_process WHERE processmistake = 0 AND processed = 0)
-		LIMIT $per_check
-		"
-	); */
-	//$per_check = 1;
-	
-	/* global $upload_dir;
-	$upload_dir = wp_upload_dir();
-		
-	global $wpdb;
-	
-	$table_posts = $wpdb->prefix.'posts';
-	$table_process = $wpdb->prefix.'postprocessing';
-	
-	$pages = $wpdb->get_results( 
-		"
-		SELECT post_title, post_content, ID, post_date, post_name
-		FROM $table_posts
-		WHERE ID = '1397'
+		AND post_type = 'post'
 		"
 	);
-	$postid = 1397;
+		
 	
-	$mistake_log = '';
+		
+	if( $pages ) {
+		echo '<table>';
+		$i=0;
+		foreach ( $pages as $page ) {
+			//generate array {y,m,d}
+			$i++;
+			$pdate = IR_getPostDate($page->post_date);
+			
+			$projfolder_name = IR_create_projfolder_name($pdate, $page->post_name, $page->post_title);
+			
+			echo '<tr>';
+			echo '<td>'.$i.'.</td><td>';
+			if (strstr($page->post_name, '%')==false){
+				echo $page->ID.'</td><td>'.$pdate['YMD'].'</td><td>'.$page->post_title.'</td><td>'.$projfolder_name.'</td>';
+			} else {
+				echo '<span style="color: #f33;">'.$page->ID.'</span>'.'</td><td>'.$pdate['YMD'].'</td><td>'.$page->post_title.'</td><td><span style="color: #f33;">'.$projfolder_name.'</span></td>';
+			}
+				
+			
+			echo '</tr>';
+			
+		}
+		echo '</table>';
+	}
 	
-	//extract thumb - 'http....jpg'
-	$thumb_link = IR_extract_thumb_link($postid);
-	
-	//check existance of thumb - filesize or mistake
-	$thmb_file = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $thumb_link );
-	if (!file_exists($thmb_file) ) { $mistake_log = 'Post id - '.$pages[0]->ID.' | Thumb not found - '.IR_shorturl($thmb_file, 1); }
-	
-	//extract image from post (unique elements)
-	$oldIMGarray = IR_getIMGarray($pages[0]->post_content);
-	//pre($oldIMGarray);
-	//echo $oldIMGarray;
-	
-	if (count($oldIMGarray)== 1 and $oldIMGarray[0]=='') { 
-		echo 'Пусто';
-		unset($oldIMGarray);	
-	} else {
-		$exist_array = IR_check_exist($oldIMGarray, $pages[0]->ID); 
-		if (gettype($exist_array) !== integer) { $mistake_log = $mistake_log.' || Missing content: '.$exist_array;	}
-	} 
-	pre($oldIMGarray);
-	
-	echo '<br><br><div style="color: #c22; font-size: 1.7em;">Mistake log </div><br>'.$mistake_log;
-	
-	 */
 	 
+}
+function IR_createOptionCell() {
+	
+	global $wpdb;
+	
+	$table_options = $wpdb->prefix.'options';
+	$IR_beginData = '{"Total_filecount":0,"Removed_filecount":0,"Removed_filesize":0}';
+	$wpdb->query("INSERT INTO $table_options(option_name, option_value, autoload) VALUES( 'Image_Replacer_filedata' , '$IR_beginData' , 'no' )");
 }
 
 function IR_sc($size, $id) {// return string :: "23,45 Мбайт"
@@ -485,7 +446,12 @@ function IR_getStat() { //return statistic
 	global $wpdb;
 	$table_options = $wpdb->prefix.'options';
 	$IR_filedata = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filedata'");
-		
+	
+	if (count($IR_filedata)==0) {
+		IR_createOptionCell();
+		$IR_filedata = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filedata'");
+	}
+	
 	//convert data <-
 	$IR_stat_array = json_decode($IR_filedata[0]->option_value);
 	
@@ -496,12 +462,16 @@ function IR_getStat() { //return statistic
 	return $IR_stat_string;
 }
 function IR_updateStat($total_filecount, $remove_filecount, $remove_filesize) { //update data in table
-	
 	//select data from table {"Total_filecount":0,"Removed_filecount":0,"Removed_filesize":0}
 	global $wpdb;
 	$table_options = $wpdb->prefix.'options';
 	$IR_filedata = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filedata'");
-		
+	
+	if (count($IR_filedata)==0) {
+		IR_createOptionCell();
+		$IR_filedata = $wpdb->get_results("SELECT option_value FROM $table_options WHERE option_name='Image_Replacer_filedata'");
+	}
+	
 	//convert data <-
 	$IR_stat_array = json_decode($IR_filedata[0]->option_value);
 	
@@ -519,8 +489,7 @@ function IR_updateStat($total_filecount, $remove_filecount, $remove_filesize) { 
 	$wpdb->update($table_options, $data, $where, array('%s','%s'));
 }
 
-
-function IR_newfilecount($dir) {
+function IR_newfilecount($dir) { //unusable function
 	
 	$dir = opendir($dir);
 	$count = 0;
@@ -650,7 +619,8 @@ function IR_getPostDate($postdate){ //return array {y,m,d}
 }
 function IR_create_projfolder_name ($pdate, $post_name, $post_title) { //return project folder name
 	
-	if (substr($post_name, 0, 1) == "%"  ) {
+	//if (substr($post_name, 0, 1) == "%"  ) {
+	if (strstr($page->post_name, '%')==false){
 		$proj_name = translit($post_title);
 	} else {
 		$proj_name = $post_name;
@@ -783,7 +753,7 @@ function test_parseposts() {
 				$IRS['totalfs'] = IR_check_exist($remarr, $page->ID);
 				$IRS['remfs'] = $IRS['totalfs'] - $IRS['oldfs'];
 				$post_log = IR_genPostLog($remarr);
-				$post_stat = 'Файлов удалено: '.$IRS['rem_img'].' | Было занято: '.IR_sc($IRS['totalfs'], 2).' | Без изменения: '.IR_sc($IRS['oldfs'], 2).' | Освобождено: '.IR_sc($IRS['remfs'], 2);
+				$post_stat = 'Файлов удалено: <b>'.$IRS['rem_img'].'</b> | Было занято: <b>'.IR_sc($IRS['totalfs'], 2).'</b> | Без изменения: '.IR_sc($IRS['oldfs'], 2).' | Освобождено: <b>'.IR_sc($IRS['remfs'], 2).'</b>';
 				$post_log = $post_stat.' || '.$post_log;
 				
 				// удаление клонов
