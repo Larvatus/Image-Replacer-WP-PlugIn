@@ -60,6 +60,7 @@ function test_options_page() {
 		echo '</br>Table '.$table_process.' are created.';
 		$sql = "CREATE TABLE " .$table_process. " (
 		  id bigint(20) NOT NULL AUTO_INCREMENT,
+		  log TEXT NULL,
 		  post_id bigint(20) NOT NULL,
 		  processed tinyint(1) default '0',
 		  processmistake tinyint(1) default '0',
@@ -159,14 +160,14 @@ if (isset($_POST['check_processing_table']))
 	//$dir = "W:\home\lexlarvatus.com\www/wp-content/uploads/sites/3/2011/2011.09.08_testovaya-podsvetka-trk-magistrat";
 	
 		
-	global $wpdb;
+	
 	
 	//$per_check = 0;
-	$table_posts = $wpdb->prefix.'posts';
-	$table_process = $wpdb->prefix.'postprocessing';
+	//$table_posts = $wpdb->prefix.'posts';
+	//$table_process = $wpdb->prefix.'postprocessing';
 	/* вытаскивает из базы данных заголовки и содержимое всех опубликованных страниц без ошибок и проверенных ранее*/ 
 	//FROM $wpdb->posts
-	$pages = $wpdb->get_results( 
+	/* $pages = $wpdb->get_results( 
 		"
 		SELECT post_title, post_content, ID, post_date, post_name
 		FROM $table_posts
@@ -200,7 +201,7 @@ if (isset($_POST['check_processing_table']))
 			
 		}
 		echo '</table>';
-	}
+	} */
 	
 	 
 }
@@ -661,7 +662,7 @@ function test_parseposts() {
 	
 	if( $pages ) {
 		foreach ( $pages as $page ) {
-			
+			global $wpdb;
 			$mistake_log = '';
 			
 			//extract thumb - 'http....jpg'
@@ -685,7 +686,11 @@ function test_parseposts() {
 			$pdate = IR_getPostDate($page->post_date);
 			
 			if ($mistake_log !== '') { //stop cycle
-				echo '<br><span style="color: #f33; font-size: 1.2em">MISTAKE!</span><br>'.$mistake_log;
+				echo '<br><span style="color: #f33; font-size: 1.2em">MISTAKE!</span><br>';
+				
+				edit_post_link( 'Редактировать', '', '', $page->ID, '' );
+				echo '<br> Post ID: '.$page->ID.' | '.$mistake_log;
+				
 				
 				$table_process = $wpdb->prefix.'postprocessing';
 				$data = array();
@@ -780,7 +785,7 @@ function test_parseposts() {
 				$data['mistake_log'] = $mistake_log;
 				$where['post_id'] = $page->ID;
 				
-				$wpdb->update($table_process, $data, $where, array( '%s', '%d', '%d' ));
+				$wpdb->update($table_process, $data, $where,  array( '%s', '%d', '%d' ) ); //array( '%s', '%s', '%d' )
 				
 				IR_updateStat($IRS['clone_img'], $IRS['rem_img'], $IRS['remfs']);
 				
